@@ -67,6 +67,31 @@
     </div>
   </main>
 
+  <!-- GET STARTED MODAL -->
+  <div id="gs-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-gs></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Get started</h3>
+        <button class="modal-x" data-close-gs aria-label="Close">&times;</button>
+      </div>
+      <a class="dl-option" href="share.html">
+        <span class="dl-text">
+          <span class="dl-name">Share on Web</span>
+          <span class="dl-sub">Cast this screen from your browser — over the internet</span>
+        </span>
+        <span class="dl-badge">→</span>
+      </a>
+      <a class="dl-option" href="view.html">
+        <span class="dl-text">
+          <span class="dl-name">View on Web</span>
+          <span class="dl-sub">Watch another screen in your browser — over the internet</span>
+        </span>
+        <span class="dl-badge">→</span>
+      </a>
+    </div>
+  </div>
+
   <!-- DEVELOPER CARD -->
   <div id="dev-card" class="dev-card hidden">
     <div class="dev-head">
@@ -143,9 +168,13 @@
 
   <script>
     const modal = document.getElementById('dl-modal');
+    const gsModal = document.getElementById('gs-modal');
     const openDl = () => modal.classList.remove('hidden');
     document.getElementById('btn-download').onclick = openDl;
-    document.getElementById('btn-get-started').onclick = openDl;
+    document.getElementById('btn-get-started').onclick = () => gsModal.classList.remove('hidden');
+    gsModal.querySelectorAll('[data-close-gs]').forEach((el) => {
+      el.onclick = () => gsModal.classList.add('hidden');
+    });
     modal.querySelectorAll('[data-close]').forEach((el) => {
       el.onclick = () => modal.classList.add('hidden');
     });
@@ -184,7 +213,7 @@
     };
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { modal.classList.add('hidden'); cModal.classList.add('hidden'); devCard.classList.add('hidden'); }
+      if (e.key === 'Escape') { modal.classList.add('hidden'); cModal.classList.add('hidden'); devCard.classList.add('hidden'); gsModal.classList.add('hidden'); }
     });
 
     document.getElementById('contact-form').onsubmit = async (e) => {

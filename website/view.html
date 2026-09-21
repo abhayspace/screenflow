@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>View on Web — ScreenFlow</title>
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=36" />
+  <link rel="stylesheet" href="style.css?v=37" />
 </head>
 <body>
   <header class="app-header">
@@ -33,7 +33,7 @@
 
       <div id="video-wrap" class="hidden">
         <video id="remote" autoplay playsinline class="remote-video"></video>
-        <button class="btn primary" id="btn-fullscreen">Fullscreen</button>
+        <button class="cta-btn orange" id="btn-fullscreen">Fullscreen</button>
       </div>
     </div>
   </main>
@@ -79,7 +79,10 @@
         else el.requestFullscreen?.();
       };
       document.addEventListener('fullscreenchange', () => {
-        $('btn-fullscreen').textContent = document.fullscreenElement ? 'Minimize' : 'Fullscreen';
+        const fs = !!document.fullscreenElement;
+        $('btn-fullscreen').textContent = fs ? 'Minimize' : 'Fullscreen';
+        $('btn-fullscreen').classList.toggle('orange', !fs);
+        $('btn-fullscreen').classList.toggle('grey', fs);
       });
 
       conn.onPeerLeft = () => {
