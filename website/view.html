@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>View on Web — ScreenFlow</title>
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=37" />
+  <link rel="stylesheet" href="style.css?v=38" />
 </head>
 <body>
   <header class="app-header">
@@ -73,16 +73,28 @@
         }
       };
 
-      $('btn-fullscreen').onclick = () => {
-        const el = document.getElementById('video-wrap');
+      const wrap = document.getElementById('video-wrap');
+      const fsBtn = $('btn-fullscreen');
+      let hideTimer = null;
+
+      function showUi() {
+        fsBtn.classList.add('ui-show');
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => fsBtn.classList.remove('ui-show'), 2500);
+      }
+      ['mousemove', 'click', 'touchstart'].forEach((ev) =>
+        wrap.addEventListener(ev, showUi)
+      );
+
+      fsBtn.onclick = () => {
         if (document.fullscreenElement) document.exitFullscreen();
-        else el.requestFullscreen?.();
+        else wrap.requestFullscreen?.();
       };
       document.addEventListener('fullscreenchange', () => {
         const fs = !!document.fullscreenElement;
-        $('btn-fullscreen').textContent = fs ? 'Minimize' : 'Fullscreen';
-        $('btn-fullscreen').classList.toggle('orange', !fs);
-        $('btn-fullscreen').classList.toggle('grey', fs);
+        fsBtn.textContent = fs ? 'Minimize' : 'Fullscreen';
+        if (fs) showUi();
+        else { clearTimeout(hideTimer); fsBtn.classList.remove('ui-show'); }
       });
 
       conn.onPeerLeft = () => {

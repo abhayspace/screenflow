@@ -121,7 +121,18 @@ body::before {
   object-fit: contain;
   border-radius: 0;
 }
-#video-wrap:fullscreen .btn { position: absolute; bottom: 24px; right: 24px; opacity: 0.85; }
+#video-wrap:fullscreen .cta-btn {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  background: rgba(230, 230, 230, 0.92);
+  color: #333;
+  box-shadow: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+#video-wrap:fullscreen .cta-btn.ui-show { opacity: 1; pointer-events: auto; }
 
 .btn {
   padding: 10px 22px;

@@ -44,35 +44,6 @@ async function sfHostOffer(conn, viewerId, stream, onState) {
   const pc = new RTCPeerConnection({ iceServers: SF_ICE });
   stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
-  // Prefer VP9 — much better detail-per-bit for screen content than VP8.
-  try {
-    const tx = pc.getTransceivers().find((t) => t.sender.track?.kind === 'video');
-    if (tx?.setCodecPreferences) {
-      const rank = (c) => {
-        const i = ['VP9', 'VP8', 'H264', 'AV1'].indexOf(c.mimeType.split('/')[1].toUpperCase());
-        return i < 0 ? 99 : i;
-      };
-      const codecs = RTCRtpSender.getCapabilities('video').codecs;
-      tx.setCodecPreferences([...codecs].sort((a, b) => rank(a) - rank(b)));
-    }
-  } catch { /* codec prefs unsupported */ }
-
-  // Screen quality: sharp text + high bitrate, resolution over framerate.
-  for (const s of pc.getSenders()) {
-    if (s.track?.kind !== 'video') continue;
-    try { s.track.contentHint = 'detail'; } catch {}
-    try {
-      const p = s.getParameters();
-      p.encodings = [{ maxBitrate: 15_000_000, scaleResolutionDownBy: 1 }];
-      await s.setParameters(p);
-    } catch { /* older browsers */ }
-    try {
-      const p = s.getParameters();
-      p.degradationPreference = 'maintain-resolution';
-      await s.setParameters(p);
-    } catch { /* nonstandard field */ }
-  }
-
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: viewerId, data: { candidate: e.candidate } });
   };
@@ -80,6 +51,17 @@ async function sfHostOffer(conn, viewerId, stream, onState) {
   const offer = await pc.createOffer();
   await pc.setLocalDescription(offer);
   conn.send({ type: 'signal', to: viewerId, data: { sdp: pc.localDescription } });
+
+  // Screen quality: sharp text + generous bitrate (applied after negotiation).
+  for (const s of pc.getSenders()) {
+    if (s.track?.kind !== 'video') continue;
+    try { s.track.contentHint = 'detail'; } catch {}
+    try {
+      const p = s.getParameters();
+      p.encodings = [{ maxBitrate: 10_000_000 }];
+      await s.setParameters(p);
+    } catch { /* older browsers */ }
+  }
   return pc;
 }
 
