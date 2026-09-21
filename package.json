@@ -51,6 +51,7 @@
       "title": "ScreenFlow"
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
