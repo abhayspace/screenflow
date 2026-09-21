@@ -174,9 +174,9 @@ body::before {
   white-space: nowrap;
 }
 @font-face {
-  font-family: 'Instrument Serif';
-  src: url('assets/InstrumentSerif-Regular.ttf') format('truetype');
-  font-weight: 400;
+  font-family: 'Inter Tight';
+  src: url('assets/InterTight.ttf') format('truetype');
+  font-weight: 100 900;
 }
 
 .hero-heading {
@@ -185,13 +185,13 @@ body::before {
   top: 8%;
   z-index: 6;
   margin: 0;
-  font-family: 'Instrument Serif', Georgia, serif;
-  font-weight: 400;
+  font-family: 'Inter Tight', 'Helvetica Neue', sans-serif;
+  font-weight: 560;
   text-transform: uppercase;
   color: #1c1c1c;
   font-size: clamp(30px, 4.6vw, 72px);
   line-height: 0.98;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
 }
 .hh-tag {
   display: block;
