@@ -545,7 +545,7 @@ function updateAuthUI() {
   $('btn-signin').classList.toggle('hidden', signedIn);
   $('btn-signup').classList.toggle('hidden', signedIn);
   $('viewer-privacy')?.classList.toggle('hidden', !signedIn);
-  if (signedIn) $('user-chip').textContent = s.user.name || s.user.username;
+  if (signedIn) $('user-chip').textContent = `Hi, ${s.user.name || s.user.username}!`;
 }
 
 async function doSignin() {

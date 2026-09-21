@@ -420,7 +420,7 @@ body::before {
 .btn.ghost { background: transparent; border: 1.5px solid #111; color: #111; }
 .btn.ghost:hover { background: #111; color: #fff; }
 .auth-swap { font-size: 13px; color: #666; text-align: center; margin: 12px 0 0; }
-.auth-swap a { color: #111; }
+.auth-swap a { color: #e05e0b; font-weight: 700; }
 .privacy-row {
   display: flex;
   gap: 10px;
@@ -431,7 +431,7 @@ body::before {
   margin-top: 14px;
   cursor: pointer;
 }
-.privacy-row input { width: 17px; height: 17px; accent-color: #111; }
+.privacy-row input { width: 17px; height: 17px; accent-color: #e05e0b; }
 
 .modal-note {
   font-size: 11px;
