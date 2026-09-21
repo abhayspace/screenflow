@@ -17,7 +17,7 @@ jobs:
             builder: --mac dmg --arm64
             artifact: ScreenFlow-mac-arm64.dmg
             pattern: dist/*.dmg
-          - os: macos-13          # Intel runner
+          - os: macos-15-intel    # Intel runner (macos-13 retired)
             builder: --mac dmg --x64
             artifact: ScreenFlow-mac-x64.dmg
             pattern: dist/*.dmg
