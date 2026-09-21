@@ -134,6 +134,38 @@ body::before {
   margin-left: 6px;
   vertical-align: 2px;
 }
+/* right-side stat block */
+.hero-stat {
+  position: absolute;
+  right: 5%;
+  top: 36%;
+  z-index: 6;
+  max-width: 330px;
+}
+.pix-arrow { display: inline-block; margin-bottom: 6px; }
+.stat-line { display: flex; align-items: baseline; gap: 10px; }
+.stat-num {
+  font-family: 'Inter Tight', sans-serif;
+  font-weight: 650;
+  font-size: clamp(34px, 3.6vw, 56px);
+  color: #1c1c1c;
+  letter-spacing: -0.02em;
+}
+.stat-label {
+  font-family: 'Kodchasan', sans-serif;
+  font-weight: 700;
+  font-size: clamp(12px, 1.1vw, 15px);
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.hero-stat p {
+  font-size: 14px;
+  line-height: 1.55;
+  color: #444;
+  margin: 8px 0 0;
+}
+
 /* bottom-left CTA block */
 .hero-cta {
   position: absolute;
