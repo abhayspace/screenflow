@@ -138,7 +138,7 @@ body::before {
 .hero-stat {
   position: absolute;
   right: 5%;
-  top: 20%;
+  top: 10%;
   z-index: 6;
   max-width: 330px;
 }
