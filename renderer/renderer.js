@@ -695,6 +695,6 @@ function setTheme(t) {
 }
 $('btn-light').onclick = () => setTheme('light');
 $('btn-dark').onclick = () => setTheme('dark');
-setTheme(localStorage.getItem('screenflow.theme') || 'dark');
+setTheme(localStorage.getItem('screenflow.theme') || 'light');
 
 init();
