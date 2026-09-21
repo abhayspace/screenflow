@@ -158,26 +158,35 @@ body::before {
 }
 
 .hero-word {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0;
+  position: relative;
   width: 100%;
+  height: 78vh;
 }
 .pix-word {
+  position: absolute;
+  z-index: 1;
   font-family: 'Press Start 2P', monospace;
-  font-size: clamp(38px, 8.5vw, 120px);
+  font-size: clamp(40px, 8.5vw, 125px);
   color: #fff;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
-.pix-word.left { margin-right: -0.35em; }   /* tucks under the image edge */
-.pix-word.right { margin-left: -0.35em; }
+.pix-word.left {
+  left: 3%;
+  top: 40%;
+}
+.pix-word.right {
+  left: 57%;
+  top: 72%;
+}
 .hero-img {
-  position: relative;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 2;
-  max-width: min(460px, 42vw);
+  width: min(560px, 46vw);
   height: auto;
   filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.18));
 }
