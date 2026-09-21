@@ -173,6 +173,33 @@ body::before {
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
+.hero-heading {
+  position: absolute;
+  left: 6%;
+  top: 6%;
+  z-index: 6;
+  margin: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #161616;
+  font-size: clamp(26px, 3.6vw, 56px);
+  line-height: 1.06;
+  letter-spacing: -0.01em;
+}
+.hh-tag {
+  display: block;
+  font-size: clamp(11px, 1vw, 15px);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  color: #555;
+  margin-bottom: 14px;
+  text-transform: none;
+}
+.hh-line { display: block; }
+.hh-line.l1 { padding-left: 14%; }
+.hh-line.l2 { padding-left: 0; }
+.hh-line.l3 { padding-left: 8%; }
+
 .pix-word.left {
   right: 52%;          /* N lands ON the comp's left side */
   top: 45%;
