@@ -319,6 +319,8 @@ async function hostOfferTo(viewerId, conn, iceServers) {
   startPeerStats(pc);     // getStats diagnostics → share-stats line
 }
 
+const pendingIce = new Map(); // peerId -> candidates that arrived before the pc existed
+
 // Shared signal handling for both roles.
 async function handleSignal(from, data, conn, iceServers) {
   let entry = peers.get(from);
@@ -352,6 +354,17 @@ async function handleSignal(from, data, conn, iceServers) {
     const answer = await entry.pc.createAnswer();
     await entry.pc.setLocalDescription(answer);
     conn.send({ type: 'signal', to: from, data: { sdp: entry.pc.localDescription } });
+    // flush ICE candidates that arrived before the pc existed
+    for (const c of pendingIce.get(from) || []) {
+      try { await entry.pc.addIceCandidate(c); } catch { /* stale */ }
+    }
+    pendingIce.delete(from);
+    return;
+  }
+
+  if (data.candidate && !entry) {
+    if (!pendingIce.has(from)) pendingIce.set(from, []);
+    pendingIce.get(from).push(data.candidate);
     return;
   }
 
@@ -393,6 +406,7 @@ function cleanupSession() {
   lanReady = netReady = false;
   approvedHosts.clear();
   pendingAuth.clear();
+  pendingIce.clear();
   $('share-preview').srcObject = null;
   $('remote-video').srcObject = null;
   $('remote-video').classList.add('hidden');

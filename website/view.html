@@ -55,6 +55,7 @@
     $('code-display').textContent = code;
     let conn = null, pc = null, restricted = false;
     const approved = new Set();
+    const pendingIce = []; // candidates arriving before pc exists
 
     // Show the privacy toggle only when signed in
     sfAuth.onchange((s) => {
@@ -93,7 +94,8 @@
         }
         if (data.sdp && data.sdp.type === 'offer') {
           if (restricted && !approved.has(from)) return;
-          pc = await sfViewerAnswer(conn, from, data.sdp, {
+          if (!pc) {
+            pc = await sfViewerAnswer(conn, from, data.sdp, {
             onTrack: (s) => {
               $('remote').srcObject = s;
               $('video-wrap').classList.remove('hidden');
@@ -112,9 +114,14 @@
               if (st === 'connected') $('v-status').textContent = 'Connected — receiving screen';
               else if (['failed', 'disconnected', 'closed'].includes(st)) $('v-status').textContent = `Connection ${st}`;
             },
-          });
-        } else if (data.candidate && pc) {
-          try { await pc.addIceCandidate(data.candidate); } catch {}
+            });
+            // flush ICE candidates that arrived before pc existed
+            for (const c of pendingIce) { try { await pc.addIceCandidate(c); } catch {} }
+            pendingIce.length = 0;
+          }
+        } else if (data.candidate) {
+          if (pc) { try { await pc.addIceCandidate(data.candidate); } catch {} }
+          else pendingIce.push(data.candidate);
         }
       };
 
