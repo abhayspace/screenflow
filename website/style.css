@@ -33,7 +33,7 @@ body::before {
 }
 
 .app-header {
-  padding: 14px 28px;
+  padding: 42px 34px 14px;
   display: flex;
   align-items: center;
 }
