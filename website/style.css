@@ -183,7 +183,7 @@ body::before {
 .hero-foot {
   position: absolute;
   right: 5%;
-  bottom: 6%;
+  bottom: 28px;   /* just above the frame border */
   z-index: 6;
   margin: 0;
   font-size: 15px;
