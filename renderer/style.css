@@ -211,3 +211,59 @@ video {
 
 .status { color: #9aa0a6; font-size: 14px; }
 .error { color: #ff7b72; font-size: 13px; min-height: 18px; }
+
+/* ---------- theme toggle ---------- */
+.theme-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  display: flex;
+  gap: 6px;
+  z-index: 50;
+}
+.theme-toggle button {
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  color: #8a8f98;
+  display: flex;
+  align-items: center;
+}
+.theme-toggle button.on { background: rgba(128, 128, 128, 0.25); color: #fff; }
+
+/* ---------- light theme ---------- */
+[data-theme="light"] body { background: #ececee; color: #161616; }
+[data-theme="light"] .brand-name,
+[data-theme="light"] #user-chip,
+[data-theme="light"] .link,
+[data-theme="light"] .big-code { color: #111; }
+[data-theme="light"] .hint,
+[data-theme="light"] .card-desc,
+[data-theme="light"] label,
+[data-theme="light"] .advanced,
+[data-theme="light"] .status { color: #666; }
+[data-theme="light"] .auth-card { background: #fff; border-color: #ddd; color: #111; }
+[data-theme="light"] .card { background: #fff; border-color: #ddd; color: #161616; }
+[data-theme="light"] .card:hover { background: #f4f4f6; }
+[data-theme="light"] .privacy-box { background: #f5f5f7; border-color: #ddd; }
+[data-theme="light"] .toggle-label { color: #222; }
+[data-theme="light"] .toggle-label input { accent-color: #e05e0b; }
+[data-theme="light"] .btn.primary,
+[data-theme="light"] .btn.stop { background: #111; color: #fff; }
+[data-theme="light"] .btn.primary:hover,
+[data-theme="light"] .btn.stop:hover { background: #333; }
+[data-theme="light"] .btn.secondary { color: #333; border-color: #ccc; }
+[data-theme="light"] .btn.secondary:hover { border-color: #999; }
+[data-theme="light"] input { background: #f5f5f6; border-color: #ddd; color: #111; }
+[data-theme="light"] input:focus { border-color: #111; }
+[data-theme="light"] .info-box { background: #f5f5f7; border-color: #ddd; }
+[data-theme="light"] .info-box code { background: #e6e6ea; color: #111; }
+[data-theme="light"] .tab { border-color: #ccc; color: #666; }
+[data-theme="light"] .tab.active { color: #111; border-color: #111; background: #e2e2e6; }
+[data-theme="light"] .source { background: #f5f5f6; border-color: #ddd; color: #161616; }
+[data-theme="light"] .source.selected { border-color: #111; }
+[data-theme="light"] .error { color: #c22; }
+[data-theme="light"] .theme-toggle button { color: #8a8f98; }
+[data-theme="light"] .theme-toggle button.on { background: rgba(0, 0, 0, 0.09); color: #111; }

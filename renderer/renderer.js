@@ -683,4 +683,16 @@ function init() {
   document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = back; });
 }
 
+/* ---------- Theme ---------- */
+
+function setTheme(t) {
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem('screenflow.theme', t);
+  $('btn-light').classList.toggle('on', t === 'light');
+  $('btn-dark').classList.toggle('on', t !== 'light');
+}
+$('btn-light').onclick = () => setTheme('light');
+$('btn-dark').onclick = () => setTheme('dark');
+setTheme(localStorage.getItem('screenflow.theme') || 'dark');
+
 init();
