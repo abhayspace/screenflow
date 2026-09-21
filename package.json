@@ -37,6 +37,10 @@
     ],
     "mac": {
       "category": "public.app-category.utilities",
+      "notarize": true,
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
