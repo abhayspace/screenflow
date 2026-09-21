@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Share on Web — ScreenFlow</title>
+  <link rel="icon" href="assets/favicon.png?v=30" />
+  <link rel="stylesheet" href="style.css?v=33" />
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/" style="text-decoration:none">
+      <img src="assets/logo.png?v=23" class="brand-icon" alt="ScreenFlow logo" />
+      <span class="brand-name">SCREENFLOW</span>
+    </a>
+    <nav class="nav-pill">
+      <a href="/">Home</a>
+      <a href="share.html" class="active">Share on Web</a>
+      <a href="view.html">View on Web</a>
+    </nav>
+    <div class="header-actions">
+      <a class="btn primary" href="/">Download</a>
+    </div>
+  </header>
+
+  <main class="page-wrap">
+    <div class="page-card cast-card">
+      <h1>Share your screen</h1>
+      <p class="cast-note">Works <b>over the internet</b> — enter the 6-digit code shown on the viewing device (app or View on Web).</p>
+
+      <div id="step-perm">
+        <button class="cta-btn orange" id="btn-share-screen">Share screen</button>
+      </div>
+
+      <div id="step-code" class="hidden">
+        <video id="preview" autoplay muted playsinline class="preview-video"></video>
+        <label class="cast-label">Enter the 6-digit code</label>
+        <div class="cast-row">
+          <input id="code-input" inputmode="numeric" maxlength="6" placeholder="123456" />
+          <button class="btn primary" id="btn-start">Share</button>
+        </div>
+      </div>
+
+      <div id="step-live" class="hidden">
+        <video id="preview-live" autoplay muted playsinline class="preview-video"></video>
+        <p id="live-status" class="cast-status">Sharing…</p>
+        <button class="cta-btn grey" id="btn-stop">Stop sharing</button>
+      </div>
+
+      <p id="share-status" class="modal-note"></p>
+    </div>
+  </main>
+
+  <script src="rtc.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    let stream = null, conn = null;
+    const pcs = new Map();
+
+    $('btn-share-screen').onclick = async () => {
+      $('share-status').textContent = '';
+      try {
+        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      } catch {
+        $('share-status').textContent = 'Screen share was cancelled or blocked — try again.';
+        return;
+      }
+      stream.getVideoTracks()[0].onended = stopAll;
+      $('preview').srcObject = stream;
+      $('step-perm').classList.add('hidden');
+      $('step-code').classList.remove('hidden');
+    };
+
+    $('code-input').addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    });
+
+    $('btn-start').onclick = async () => {
+      const code = $('code-input').value.trim();
+      if (!/^\d{6}$/.test(code)) {
+        $('share-status').textContent = 'Enter the 6-digit code from the viewing device.';
+        return;
+      }
+      $('share-status').textContent = 'Connecting…';
+      try {
+        conn = await sfConnect(code, 'host');
+      } catch (e) {
+        $('share-status').textContent = e.message;
+        return;
+      }
+      conn.onPeerJoined = (p) => { if (p.role === 'viewer') offerTo(p.id); };
+      conn.onPeerLeft = (id) => { pcs.get(id)?.close(); pcs.delete(id); updateStatus(); };
+      conn.onSignal = async (from, data) => {
+        const pc = pcs.get(from);
+        if (!pc) return;
+        if (data.sdp && data.sdp.type === 'answer') await pc.setRemoteDescription(data.sdp);
+        else if (data.candidate) { try { await pc.addIceCandidate(data.candidate); } catch {} }
+      };
+      for (const p of conn.peers) if (p.role === 'viewer') offerTo(p.id);
+      $('preview-live').srcObject = stream;
+      $('step-code').classList.add('hidden');
+      $('step-live').classList.remove('hidden');
+      updateStatus();
+    };
+
+    async function offerTo(id) {
+      if (pcs.has(id)) return;
+      const pc = await sfHostOffer(conn, id, stream, () => updateStatus());
+      pcs.set(id, pc);
+    }
+
+    function updateStatus() {
+      let n = 0;
+      pcs.forEach((pc) => { if (pc.connectionState === 'connected') n++; });
+      $('live-status').textContent = `Sharing — viewers connected: ${n}`;
+    }
+
+    function stopAll() {
+      pcs.forEach((pc) => pc.close());
+      pcs.clear();
+      conn?.close();
+      conn = null;
+      stream?.getTracks().forEach((t) => t.stop());
+      stream = null;
+      $('preview').srcObject = null;
+      $('preview-live').srcObject = null;
+      $('step-code').classList.add('hidden');
+      $('step-live').classList.add('hidden');
+      $('step-perm').classList.remove('hidden');
+      $('share-status').textContent = '';
+    }
+
+    $('btn-stop').onclick = stopAll;
+  </script>
+</body>
+</html>
