@@ -30,15 +30,15 @@ npm start
 
 ### Over the internet
 
-1. Deploy the signaling server somewhere public (it only needs Node.js):
-   ```bash
-   node server/signaling-server.js 45455
-   ```
-   Put it behind TLS (Caddy/nginx/Cloudflare) and use `wss://`, or use `ws://` for testing.
-2. **Sharing PC:** Share my screen → *Over the internet* → enter server URL + a room code → Start sharing.
-3. **Viewing PC:** View a screen → *Over the internet* → same server URL + room code → Connect.
+Both devices pick **Over the internet** and use the same 6-digit code — no URLs for users. The app talks to `DEFAULT_SIGNAL_SERVER` in `renderer/renderer.js` (currently `wss://screenflow.nextforms.in/ws`).
 
-NAT traversal uses Google's public STUN server by default. For strict corporate NATs/firewalls you may need your own TURN server (e.g. [coturn](https://github.com/coturn/coturn)) — enter it under *Advanced* on both sides.
+The production server (`server/server.js`, port 45455) serves both the auth API (`/api/*`) and the signaling WebSocket (`/ws`) on one port. Deployed on the VPS behind nginx + Cloudflare at `screenflow.nextforms.in`; website at the domain root. NAT traversal uses Google's public STUN; add a TURN server (coturn) later if needed for strict NATs.
+
+Website: `website/` is a static landing page — served by nginx on the VPS; download links point at GitHub Releases assets (`releases/latest/download/ScreenFlow-*`).
+
+### Accounts (auth)
+
+Sign up = name + username + Gmail → OTP email via **Resend** → verify → signed in. Sign in = email **or** username + password. Server keeps users in `server/data/users.json` (scrypt-hashed passwords), sessions in memory. Secrets in `.env` (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`) — never shipped in the app.
 
 ## Building installers for your website
 
