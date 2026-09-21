@@ -138,12 +138,12 @@ body::before {
 .hero-stat {
   position: absolute;
   right: 5%;
-  top: 36%;
+  top: 20%;
   z-index: 6;
   max-width: 330px;
 }
-.pix-arrow { display: inline-block; margin-bottom: 6px; }
-.stat-line { display: flex; align-items: baseline; gap: 10px; }
+.stat-line { display: flex; align-items: flex-start; gap: 14px; }
+.pix-arrow { margin-top: 12px; flex-shrink: 0; }
 .stat-num {
   font-family: 'Inter Tight', sans-serif;
   font-weight: 650;
