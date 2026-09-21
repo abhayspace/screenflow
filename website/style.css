@@ -174,8 +174,8 @@ body::before {
   white-space: nowrap;
 }
 .pix-word.left {
-  left: 3%;
-  top: 46%;            /* dips the N under the comp's left edge */
+  right: 60%;          /* right edge lands under the comp's left side */
+  top: 45%;
 }
 .pix-word.right {
   left: 57%;
