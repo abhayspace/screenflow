@@ -167,14 +167,14 @@ body::before {
   position: absolute;
   z-index: 0;
   font-family: 'Press Start 2P', monospace;
-  font-size: clamp(40px, 8.5vw, 125px);
+  font-size: clamp(38px, 7.5vw, 115px);
   color: #fff;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.06);
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
 .pix-word.left {
-  right: 60%;          /* right edge lands under the comp's left side */
+  right: 55%;          /* right edge lands under the comp's left side */
   top: 45%;
 }
 .pix-word.right {
