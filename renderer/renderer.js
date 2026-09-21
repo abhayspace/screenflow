@@ -790,6 +790,15 @@ function init() {
     const v = $('remote-video');
     if (v.requestFullscreen) v.requestFullscreen();
   };
+  document.addEventListener('fullscreenchange', () => {
+    const v = $('remote-video');
+    const t = v.srcObject?.getVideoTracks?.()[0];
+    const s = t?.getSettings?.() || {};
+    console.log(
+      `[fs ${document.fullscreenElement ? 'enter' : 'exit'}] video ${v.videoWidth}×${v.videoHeight} → element ${v.clientWidth}×${v.clientHeight}` +
+      ` | track ${s.width}×${s.height}@${s.frameRate}fps`
+    );
+  });
 
   document.querySelectorAll('[data-back]').forEach((b) => { b.onclick = back; });
 }

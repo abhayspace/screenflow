@@ -117,11 +117,15 @@ body::before {
 #video-wrap { margin-top: 16px; }
 #video-wrap .btn { margin-top: 12px; }
 #video-wrap:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
   background: #000;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+#video-wrap:fullscreen .stats-line { display: none; }
 #video-wrap:fullscreen .remote-video {
   width: 100%;
   height: 100%;

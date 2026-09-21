@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>View on Web — ScreenFlow</title>
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=43" />
+  <link rel="stylesheet" href="style.css?v=44" />
 </head>
 <body>
   <header class="app-header">
@@ -135,8 +135,19 @@
         if (document.fullscreenElement) document.exitFullscreen();
         else wrap.requestFullscreen?.();
       };
+
+      function logVideoDims(tag) {
+        const v = $('remote');
+        const t = v.srcObject?.getVideoTracks?.()[0];
+        const s = t?.getSettings?.() || {};
+        console.log(
+          `[fs ${tag}] video ${v.videoWidth}×${v.videoHeight} → element ${v.clientWidth}×${v.clientHeight}` +
+          ` | track ${s.width}×${s.height}@${s.frameRate}fps`
+        );
+      }
       document.addEventListener('fullscreenchange', () => {
         const fs = !!document.fullscreenElement;
+        logVideoDims(fs ? 'enter' : 'exit'); // stream res must be unchanged
         fsBtn.textContent = fs ? 'Minimize' : 'Fullscreen';
         if (fs) showUi();
         else { clearTimeout(hideTimer); fsBtn.classList.remove('ui-show'); }
