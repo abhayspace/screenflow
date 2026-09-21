@@ -5,7 +5,7 @@ const $ = (id) => document.getElementById(id);
 // public host (VPS, Railway, Render…), then paste its wss:// address here.
 // Users never see this — pairing is still just the 6-digit code.
 // LAN mode (same WiFi) works with no server and no internet at all.
-const DEFAULT_SIGNAL_SERVER = 'ws://localhost:45455'; // dev: `npm run server` — prod: 'wss://your-domain.com'
+const DEFAULT_SIGNAL_SERVER = 'wss://screenflow.nextforms.in/ws'; // dev: 'ws://localhost:45455' with `npm run server`
 // ---------------------------------------------------------------------------
 
 // Fallback for previewing the UI in a plain browser (no Electron preload).
@@ -442,7 +442,15 @@ async function loadSources() {
 
 function authBase() {
   if (!DEFAULT_SIGNAL_SERVER) return null;
-  return DEFAULT_SIGNAL_SERVER.replace(/^ws/, 'http').replace(/\/+$/, '');
+  try {
+    const u = new URL(DEFAULT_SIGNAL_SERVER);
+    u.protocol = u.protocol === 'wss:' ? 'https:' : 'http:';
+    u.pathname = '/';
+    u.search = '';
+    return u.origin;
+  } catch {
+    return null;
+  }
 }
 
 async function api(path, body) {

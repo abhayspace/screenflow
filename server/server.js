@@ -28,8 +28,8 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-attachSignalingServer(server);
+attachSignalingServer(server, '/ws');
 
 server.listen(port, () => {
-  console.log(`ScreenFlow server listening on port ${port} (auth API + signaling WS)`);
+  console.log(`ScreenFlow server listening on port ${port} (auth API at /api/*, signaling WS at /ws)`);
 });

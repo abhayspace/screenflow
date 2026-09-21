@@ -108,8 +108,8 @@ function createSignalingServer({ port = 45455, host = '0.0.0.0', onListening } =
 
 // Attached mode: share an existing http.Server's port (used by
 // server/server.js so auth HTTP + signaling WS run on one port).
-function attachSignalingServer(httpServer) {
-  return wireSignaling(new WebSocketServer({ server: httpServer }));
+function attachSignalingServer(httpServer, path = '/') {
+  return wireSignaling(new WebSocketServer({ server: httpServer, path }));
 }
 
 module.exports = { createSignalingServer, attachSignalingServer };
