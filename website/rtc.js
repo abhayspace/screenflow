@@ -43,6 +43,19 @@ function sfConnect(code, role) {
 async function sfHostOffer(conn, viewerId, stream, onState) {
   const pc = new RTCPeerConnection({ iceServers: SF_ICE });
   stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+
+  // Screen quality: sharp text + high bitrate, resolution over framerate.
+  for (const s of pc.getSenders()) {
+    if (s.track?.kind !== 'video') continue;
+    try { s.track.contentHint = 'detail'; } catch {}
+    try {
+      const p = s.getParameters();
+      p.encodings = [{ maxBitrate: 12_000_000, scaleResolutionDownBy: 1 }];
+      p.degradationPreference = 'maintain-resolution';
+      await s.setParameters(p);
+    } catch { /* older browsers */ }
+  }
+
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: viewerId, data: { candidate: e.candidate } });
   };
@@ -60,7 +73,10 @@ async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
     if (e.candidate) conn.send({ type: 'signal', to: hostId, data: { candidate: e.candidate } });
   };
   pc.onconnectionstatechange = () => onState?.(hostId, pc.connectionState);
-  pc.ontrack = (e) => onTrack?.(e.streams[0]);
+  pc.ontrack = (e) => {
+    try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {} // realtime, no buffer
+    onTrack?.(e.streams[0]);
+  };
   await pc.setRemoteDescription(sdp);
   const answer = await pc.createAnswer();
   await pc.setLocalDescription(answer);

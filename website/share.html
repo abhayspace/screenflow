@@ -60,7 +60,14 @@
     $('btn-share-screen').onclick = async () => {
       $('share-status').textContent = '';
       try {
-        stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: 30, max: 60 },
+          },
+          audio: false,
+        });
       } catch {
         $('share-status').textContent = 'Screen share was cancelled or blocked — try again.';
         return;

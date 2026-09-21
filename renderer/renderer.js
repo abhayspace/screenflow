@@ -168,6 +168,18 @@ async function hostOfferTo(viewerId, conn, iceServers) {
   peers.set(viewerId, { pc, conn });
   localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
 
+  // HD quality for screen content: sharp text, resolution over framerate.
+  for (const s of pc.getSenders()) {
+    if (s.track?.kind !== 'video') continue;
+    try { s.track.contentHint = 'detail'; } catch {}
+    try {
+      const p = s.getParameters();
+      p.encodings = [{ maxBitrate: 12_000_000, scaleResolutionDownBy: 1 }];
+      p.degradationPreference = 'maintain-resolution';
+      s.setParameters(p);
+    } catch { /* older Chromium */ }
+  }
+
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: viewerId, data: { candidate: e.candidate } });
   };
@@ -191,6 +203,7 @@ async function handleSignal(from, data, conn, iceServers) {
         if (e.candidate) conn.send({ type: 'signal', to: from, data: { candidate: e.candidate } });
       };
       pc.ontrack = (e) => {
+        try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {}
         $('remote-video').srcObject = e.streams[0];
         $('remote-video').classList.remove('hidden');
         $('btn-fullscreen').classList.remove('hidden');
