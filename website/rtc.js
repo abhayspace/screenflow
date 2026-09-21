@@ -165,8 +165,11 @@ function sfAdaptive(pc, onTier) {
 /* ---------- Peer helpers ---------- */
 
 // Host side: offer our screen stream to a viewer.
-async function sfHostOffer(conn, viewerId, stream, onState) {
+// registry (optional Map) registers the pc BEFORE any await, so early
+// answers/candidates from the viewer are never dropped.
+async function sfHostOffer(conn, viewerId, stream, onState, registry) {
   const pc = new RTCPeerConnection({ iceServers: sfIceServers() });
+  registry?.set(viewerId, pc);
   stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
   pc.onicecandidate = (e) => {

@@ -55,7 +55,7 @@
     &nbsp;© 2026 nextforms
   </p>
 
-  <script src="rtc.js"></script>
+  <script src="rtc.js?v=2"></script>
   <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -124,8 +124,15 @@
         }
         const pc = pcs.get(from);
         if (!pc) return;
-        if (data.sdp && data.sdp.type === 'answer') await pc.setRemoteDescription(data.sdp);
-        else if (data.candidate) { try { await pc.addIceCandidate(data.candidate); } catch {} }
+        if (data.sdp && data.sdp.type === 'answer') {
+          await pc.setRemoteDescription(data.sdp);
+          for (const c of pc._earlyIce || []) { try { await pc.addIceCandidate(c); } catch {} }
+          pc._earlyIce = null;
+        } else if (data.candidate) {
+          // candidates can arrive before the answer is applied — buffer them
+          if (pc.remoteDescription) { try { await pc.addIceCandidate(data.candidate); } catch {} }
+          else (pc._earlyIce = pc._earlyIce || []).push(data.candidate);
+        }
       };
       for (const p of conn.peers) if (p.role === 'viewer') handleViewer(p);
       $('preview-live').srcObject = stream;
@@ -136,7 +143,7 @@
 
     async function offerTo(id) {
       if (pcs.has(id)) return;
-      const pc = await sfHostOffer(conn, id, stream, () => updateStatus());
+      const pc = await sfHostOffer(conn, id, stream, () => updateStatus(), pcs);
       pcs.set(id, pc);
       // per-peer stats + adaptive quality
       sfAdaptive(pc);

@@ -371,8 +371,17 @@ async function handleSignal(from, data, conn, iceServers) {
   if (!entry) return;
   if (data.sdp && data.sdp.type === 'answer') {
     await entry.pc.setRemoteDescription(data.sdp);
+    for (const c of entry.earlyIce || []) {
+      try { await entry.pc.addIceCandidate(c); } catch { /* stale */ }
+    }
+    entry.earlyIce = null;
   } else if (data.candidate) {
-    try { await entry.pc.addIceCandidate(data.candidate); } catch { /* stale candidate */ }
+    // buffer candidates that arrive before the answer is applied
+    if (entry.pc.remoteDescription) {
+      try { await entry.pc.addIceCandidate(data.candidate); } catch { /* stale candidate */ }
+    } else {
+      (entry.earlyIce = entry.earlyIce || []).push(data.candidate);
+    }
   }
 }
 
