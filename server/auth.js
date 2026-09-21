@@ -1,5 +1,6 @@
 // Auth + OTP email verification for ScreenFlow.
-// Runs server-side only — the Resend API key must NEVER ship inside the app.
+// Runs server-side only — the Resend API key and Supabase secret key must
+// NEVER ship inside the app.
 //
 // Routes (all POST, JSON in/out):
 //   /api/signup/begin   { name, username, email, password } -> sends OTP
@@ -8,28 +9,10 @@
 //   /api/signin         { id, password }   (id = email or username) -> { token, user }
 
 const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const db = require('./db');
 
-const DATA_DIR = path.join(__dirname, 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const OTP_TTL_MS = 10 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
-
-/* ---------- storage (JSON file — fine for small deployments) ---------- */
-
-function loadDb() {
-  try {
-    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-  } catch {
-    return { users: {}, pending: {} };
-  }
-}
-
-function saveDb(db) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  fs.writeFileSync(USERS_FILE, JSON.stringify(db, null, 2));
-}
 
 /* ---------- crypto helpers ---------- */
 
@@ -82,14 +65,18 @@ async function sendOtpEmail(email, otp) {
   if (!res.ok) throw new Error(`Email send failed (${res.status})`);
 }
 
-async function issueOtp(db, email, pending) {
+async function issueOtp(email, pending) {
   const otp = String(crypto.randomInt(100000, 1000000));
   if (process.env.SF_DEBUG_OTP) console.log(`[debug] OTP for ${email}: ${otp}`);
-  pending.otpHash = hashOtp(email, otp);
-  pending.expires = Date.now() + OTP_TTL_MS;
-  pending.attempts = 0;
-  db.pending[email.toLowerCase()] = pending;
-  saveDb(db);
+  await db.upsertPending({
+    email,
+    name: pending.name,
+    username: pending.username,
+    pass_hash: pending.pass_hash,
+    otp_hash: hashOtp(email, otp),
+    expires: Date.now() + OTP_TTL_MS,
+    attempts: 0,
+  });
   await sendOtpEmail(email, otp);
 }
 
@@ -136,7 +123,6 @@ async function authHandler(req, res) {
     return true;
   }
 
-  const db = loadDb();
   const err = (m, status = 400) => sendJson(res, status, { error: m });
 
   try {
@@ -148,23 +134,21 @@ async function authHandler(req, res) {
       const password = String(body.password || '');
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Enter a valid email address');
-      if (db.users[email]) return err('An account with this email already exists');
+      if (await db.findUserByEmail(email)) return err('An account with this email already exists');
 
       if (req.url === '/api/signup/resend') {
-        const pending = db.pending[email];
+        const pending = await db.getPending(email);
         if (!pending) return err('No pending signup for this email', 404);
-        await issueOtp(db, email, pending);
+        await issueOtp(email, pending);
         return sendJson(res, 200, { ok: true });
       }
 
       if (name.length < 2) return err('Enter your name');
       if (!/^[a-z0-9_.]{3,20}$/.test(username)) return err('Username: 3–20 chars, a–z 0–9 _ .');
       if (password.length < 6) return err('Password must be at least 6 characters');
-      if (Object.values(db.users).some((u) => u.username === username)) {
-        return err('Username is taken');
-      }
+      if (await db.findUserByUsername(username)) return err('Username is taken');
 
-      await issueOtp(db, email, { name, username, passHash: hashPassword(password) });
+      await issueOtp(email, { name, username, pass_hash: hashPassword(password) });
       return sendJson(res, 200, { ok: true });
     }
 
@@ -172,19 +156,17 @@ async function authHandler(req, res) {
     if (req.url === '/api/signup/verify') {
       const email = String(body.email || '').trim().toLowerCase();
       const otp = String(body.otp || '').trim();
-      const pending = db.pending[email];
+      const pending = await db.getPending(email);
       if (!pending) return err('No pending signup for this email', 404);
-      if (Date.now() > pending.expires) return err('Code expired — request a new one');
+      if (Date.now() > Number(pending.expires)) return err('Code expired — request a new one');
       if (pending.attempts >= OTP_MAX_ATTEMPTS) return err('Too many attempts — request a new code');
-      if (hashOtp(email, otp) !== pending.otpHash) {
-        pending.attempts++;
-        saveDb(db);
+      if (hashOtp(email, otp) !== pending.otp_hash) {
+        await db.upsertPending({ ...pending, attempts: pending.attempts + 1 });
         return err('Wrong code');
       }
       const user = { name: pending.name, username: pending.username, email };
-      db.users[email] = { ...user, passHash: pending.passHash, createdAt: Date.now() };
-      delete db.pending[email];
-      saveDb(db);
+      await db.insertUser({ ...user, pass_hash: pending.pass_hash });
+      await db.deletePending(email);
       return sendJson(res, 200, { token: newSession(user), user });
     }
 
@@ -193,12 +175,11 @@ async function authHandler(req, res) {
       const id = String(body.id || '').trim().toLowerCase();
       const password = String(body.password || '');
       const user =
-        db.users[id] ||
-        Object.values(db.users).find((u) => u.username === id);
-      if (!user || !verifyPassword(password, user.passHash)) {
+        (await db.findUserByEmail(id)) || (await db.findUserByUsername(id));
+      if (!user || !verifyPassword(password, user.pass_hash)) {
         return err('Invalid credentials', 401);
       }
-      const { passHash, ...safe } = user;
+      const { pass_hash, ...safe } = user;
       return sendJson(res, 200, { token: newSession(safe), user: safe });
     }
 
