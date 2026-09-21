@@ -161,10 +161,11 @@ body::before {
   position: relative;
   width: 100%;
   height: 78vh;
+  isolation: isolate;   /* contain stacking so the image always wins */
 }
 .pix-word {
   position: absolute;
-  z-index: 1;
+  z-index: 0;
   font-family: 'Press Start 2P', monospace;
   font-size: clamp(40px, 8.5vw, 125px);
   color: #fff;
@@ -174,7 +175,7 @@ body::before {
 }
 .pix-word.left {
   left: 3%;
-  top: 40%;
+  top: 46%;            /* dips the N under the comp's left edge */
 }
 .pix-word.right {
   left: 57%;
@@ -185,7 +186,7 @@ body::before {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 2;
+  z-index: 5;
   width: min(560px, 46vw);
   height: auto;
   filter: drop-shadow(0 30px 40px rgba(0, 0, 0, 0.18));
