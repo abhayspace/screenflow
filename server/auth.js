@@ -80,6 +80,33 @@ async function issueOtp(email, pending) {
   await sendOtpEmail(email, otp);
 }
 
+async function sendContactEmail({ name, email, phone, description }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY is not set on the server');
+  const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL || 'ScreenFlow <screenflow@nextforms.in>',
+      to: 'nextformapps@gmail.com',
+      reply_to: email,
+      subject: `ScreenFlow contact — ${name}`,
+      html: `<div style="font-family:sans-serif;padding:24px">
+        <h2 style="margin:0 0 16px">New contact from ScreenFlow website</h2>
+        <p><b>Name:</b> ${esc(name)}</p>
+        <p><b>Email:</b> ${esc(email)}</p>
+        <p><b>Phone:</b> ${esc(phone)}</p>
+        <p><b>Message:</b><br>${esc(description).replace(/\n/g, '<br>')}</p>
+      </div>`,
+    }),
+  });
+  if (!res.ok) throw new Error(`Email send failed (${res.status})`);
+}
+
 /* ---------- HTTP handler ---------- */
 
 function readBody(req) {
@@ -181,6 +208,20 @@ async function authHandler(req, res) {
       }
       const { pass_hash, ...safe } = user;
       return sendJson(res, 200, { token: newSession(safe), user: safe });
+    }
+
+    /* ----- contact form ----- */
+    if (req.url === '/api/contact') {
+      const name = String(body.name || '').trim();
+      const email = String(body.email || '').trim();
+      const phone = String(body.phone || '').trim();
+      const description = String(body.description || '').trim();
+      if (name.length < 2) return err('Enter your name');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err('Enter a valid email');
+      if (!phone) return err('Enter your phone number');
+      if (description.length < 5) return err('Enter a message');
+      await sendContactEmail({ name, email, phone, description });
+      return sendJson(res, 200, { ok: true });
     }
 
     sendJson(res, 404, { error: 'Not found' });

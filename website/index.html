@@ -6,7 +6,7 @@
   <title>ScreenFlow — Cast your screen to any PC</title>
   <meta name="description" content="Share your screen from one PC to another — over WiFi with no internet, or over the internet with a 6-digit code." />
   <link rel="icon" href="assets/logo.png?v=9" />
-  <link rel="stylesheet" href="style.css?v=19" />
+  <link rel="stylesheet" href="style.css?v=20" />
 </head>
 <body>
   <header class="app-header">
@@ -30,8 +30,35 @@
       <span class="pix-word left">SCREEN</span>
       <img src="assets/comp.png?v=4" class="hero-img" alt="ScreenFlow" />
       <span class="pix-word right">FLOW</span>
+
+      <div class="hero-cta">
+        <p>Share your screen to any device — over the same WiFi with no internet, or over the internet with a simple 6-digit code.</p>
+        <div class="cta-row">
+          <button class="cta-btn orange" id="btn-get-started">Get Started</button>
+          <button class="cta-btn grey" id="btn-contact">Contact Us</button>
+        </div>
+      </div>
     </div>
   </main>
+
+  <!-- CONTACT MODAL -->
+  <div id="contact-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-contact></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Contact us</h3>
+        <button class="modal-x" data-close-contact aria-label="Close">&times;</button>
+      </div>
+      <form id="contact-form" class="contact-form">
+        <input id="cf-name" type="text" placeholder="Name" required />
+        <input id="cf-email" type="email" placeholder="Gmail" required />
+        <input id="cf-phone" type="tel" placeholder="Phone number" required />
+        <textarea id="cf-desc" placeholder="Description" rows="4" required></textarea>
+        <p id="contact-status" class="modal-note"></p>
+        <button type="submit" class="btn primary cf-send">Send</button>
+      </form>
+    </div>
+  </div>
 
   <!-- DOWNLOAD MODAL -->
   <div id="dl-modal" class="modal hidden">
@@ -68,13 +95,46 @@
 
   <script>
     const modal = document.getElementById('dl-modal');
-    document.getElementById('btn-download').onclick = () => modal.classList.remove('hidden');
+    const openDl = () => modal.classList.remove('hidden');
+    document.getElementById('btn-download').onclick = openDl;
+    document.getElementById('btn-get-started').onclick = openDl;
     modal.querySelectorAll('[data-close]').forEach((el) => {
       el.onclick = () => modal.classList.add('hidden');
     });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') modal.classList.add('hidden');
+
+    const cModal = document.getElementById('contact-modal');
+    document.getElementById('btn-contact').onclick = () => cModal.classList.remove('hidden');
+    cModal.querySelectorAll('[data-close-contact]').forEach((el) => {
+      el.onclick = () => cModal.classList.add('hidden');
     });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { modal.classList.add('hidden'); cModal.classList.add('hidden'); }
+    });
+
+    document.getElementById('contact-form').onsubmit = async (e) => {
+      e.preventDefault();
+      const status = document.getElementById('contact-status');
+      status.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('cf-name').value,
+            email: document.getElementById('cf-email').value,
+            phone: document.getElementById('cf-phone').value,
+            description: document.getElementById('cf-desc').value,
+          }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || 'Send failed');
+        status.textContent = 'Sent! We’ll get back to you soon.';
+        e.target.reset();
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    };
   </script>
 </body>
 </html>
