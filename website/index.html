@@ -6,7 +6,7 @@
   <title>ScreenFlow — Cast your screen to any PC</title>
   <meta name="description" content="Share your screen from one PC to another — over WiFi with no internet, or over the internet with a 6-digit code." />
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=30" />
+  <link rel="stylesheet" href="style.css?v=31" />
 </head>
 <body>
   <header class="app-header">
@@ -34,7 +34,7 @@
       <p class="hero-sub">From a six-digit code to a live screen — casting made effortless.</p>
 
       <p class="hero-foot">
-        <a href="#">About</a> · <a href="#">Terms</a> · <a href="#">Privacy</a> · <a href="#">Refund</a> · <a href="#">Cookies</a> · <a href="#">Developer</a>
+        <a href="about.html">About</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="refund.html">Refund</a> · <a href="cookies.html">Cookies</a> · <a href="#" id="link-developer">Developer</a>
         &nbsp;© 2026 nextforms
       </p>
 
@@ -61,6 +61,28 @@
       </div>
     </div>
   </main>
+
+  <!-- DEVELOPER CARD -->
+  <div id="dev-card" class="dev-card hidden">
+    <div class="dev-head">
+      <h3>Built by Abhay Tripathi</h3>
+      <button class="modal-x" id="dev-close" aria-label="Close">&times;</button>
+    </div>
+    <p class="dev-sub">For any recommendation or to create websites like this send a message to developer.</p>
+    <div class="dev-body">
+      <div class="dev-msg">
+        <textarea id="dev-message" placeholder="Write your message here..."></textarea>
+        <button id="dev-send" class="dev-send" aria-label="Send">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="#fff"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <div class="dev-side">
+        <img src="assets/dev.jpg" class="dev-photo" alt="Abhay Tripathi" />
+        <span class="dev-mail">abhaytripathi19oct@gmail.com</span>
+      </div>
+    </div>
+    <p id="dev-status" class="modal-note"></p>
+  </div>
 
   <!-- CONTACT MODAL -->
   <div id="contact-modal" class="modal hidden">
@@ -129,8 +151,35 @@
       el.onclick = () => cModal.classList.add('hidden');
     });
 
+    const devCard = document.getElementById('dev-card');
+    document.getElementById('link-developer').onclick = (e) => {
+      e.preventDefault();
+      devCard.classList.remove('hidden');
+    };
+    document.getElementById('dev-close').onclick = () => devCard.classList.add('hidden');
+    document.getElementById('dev-send').onclick = async () => {
+      const status = document.getElementById('dev-status');
+      const box = document.getElementById('dev-message');
+      const message = box.value.trim();
+      if (!message) return status.textContent = 'Write a message first.';
+      status.textContent = 'Sending…';
+      try {
+        const r = await fetch('/api/dev-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || 'Send failed');
+        status.textContent = 'Sent!';
+        box.value = '';
+      } catch (err) {
+        status.textContent = err.message;
+      }
+    };
+
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { modal.classList.add('hidden'); cModal.classList.add('hidden'); }
+      if (e.key === 'Escape') { modal.classList.add('hidden'); cModal.classList.add('hidden'); devCard.classList.add('hidden'); }
     });
 
     document.getElementById('contact-form').onsubmit = async (e) => {

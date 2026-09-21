@@ -182,7 +182,7 @@ body::before {
 
 .hero-foot {
   position: fixed;   /* viewport-anchored, just above the frame border */
-  right: 5%;
+  right: 34px;
   bottom: 26px;
   z-index: 6;
   margin: 0;
@@ -251,6 +251,77 @@ body::before {
 .contact-form input:focus,
 .contact-form textarea:focus { border-color: #111; }
 .cf-send { width: 100%; }
+
+/* developer card (bottom-right) */
+.dev-card {
+  position: fixed;
+  right: 40px;
+  bottom: 60px;
+  z-index: 120;
+  width: min(400px, 92vw);
+  background: #fff;
+  border-radius: 22px;
+  padding: 20px 24px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+.dev-head { display: flex; align-items: flex-start; justify-content: space-between; }
+.dev-head h3 { margin: 0; font-size: 19px; }
+.dev-sub { color: #777; font-size: 13px; line-height: 1.55; margin: 8px 0 16px; }
+.dev-body { display: flex; gap: 14px; }
+.dev-msg { flex: 1; position: relative; }
+.dev-msg textarea {
+  width: 100%;
+  min-height: 112px;
+  border: none;
+  background: #f2f2f4;
+  border-radius: 14px;
+  padding: 14px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: none;
+  outline: none;
+}
+.dev-send {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: #f4511e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dev-send:hover { background: #e0440f; }
+.dev-side { width: 108px; text-align: center; }
+.dev-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.dev-mail { display: block; font-size: 10.5px; color: #555; margin-top: 8px; word-break: break-all; }
+
+/* inner pages */
+.page-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
+.page-card {
+  background: #fff;
+  border-radius: 20px;
+  max-width: 640px;
+  width: 100%;
+  padding: 40px 44px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.15);
+  color: #222;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.page-card h1 { margin: 0 0 18px; font-size: 26px; }
+.page-card h2 { font-size: 16px; margin: 24px 0 6px; }
+.page-card p { margin: 0 0 12px; }
+.back-link { display: inline-block; margin-top: 26px; color: #111; font-weight: 700; }
 
 .modal-note {
   font-size: 11px;

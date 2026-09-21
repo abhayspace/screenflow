@@ -107,6 +107,29 @@ async function sendContactEmail({ name, email, phone, description }) {
   if (!res.ok) throw new Error(`Email send failed (${res.status})`);
 }
 
+async function sendDevMessage(message) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new Error('RESEND_API_KEY is not set on the server');
+  const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: process.env.RESEND_FROM_EMAIL || 'ScreenFlow <screenflow@nextforms.in>',
+      to: 'abhaytripathi19oct@gmail.com',
+      subject: 'ScreenFlow — message for the developer',
+      html: `<div style="font-family:sans-serif;padding:24px">
+        <h2 style="margin:0 0 16px">Developer message from screenflow.nextforms.in</h2>
+        <p>${esc(message).replace(/\n/g, '<br>')}</p>
+      </div>`,
+    }),
+  });
+  if (!res.ok) throw new Error(`Email send failed (${res.status})`);
+}
+
 /* ---------- HTTP handler ---------- */
 
 function readBody(req) {
@@ -221,6 +244,15 @@ async function authHandler(req, res) {
       if (!phone) return err('Enter your phone number');
       if (description.length < 5) return err('Enter a message');
       await sendContactEmail({ name, email, phone, description });
+      return sendJson(res, 200, { ok: true });
+    }
+
+    /* ----- developer card message ----- */
+    if (req.url === '/api/dev-message') {
+      const message = String(body.message || '').trim();
+      if (message.length < 3) return err('Write a message first');
+      if (message.length > 4000) return err('Message too long');
+      await sendDevMessage(message);
       return sendJson(res, 200, { ok: true });
     }
 
