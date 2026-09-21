@@ -184,6 +184,31 @@ async function captureScreen(sourceId) {
   });
 }
 
+// Screen-tuned send: temporal scalability (L1T3) sheds layers not resolution
+// under congestion; codec preference AV1 > VP9 > default per viewer.
+function addScreenTrack(pc, track, stream) {
+  let tc;
+  try {
+    tc = pc.addTransceiver(track, {
+      direction: 'sendonly',
+      streams: [stream],
+      sendEncodings: [{ scalabilityMode: 'L1T3' }],
+    });
+  } catch {
+    tc = pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] });
+  }
+  try {
+    const caps = RTCPeerConnection.getCapabilities('video').codecs;
+    const pref = [];
+    for (const name of ['AV1X', 'VP9', 'VP8', 'H264']) {
+      const c = caps.find((c) => c.mimeType === `video/${name}`);
+      if (c) pref.push(c);
+    }
+    if (pref.length) tc.setCodecPreferences(pref);
+  } catch { /* older Chromium */ }
+  return tc.sender;
+}
+
 /* ---------- Quality tiers + diagnostics ---------- */
 // Adapt down under congestion/CPU load, recover when clean. Sharp text first.
 
@@ -324,7 +349,7 @@ async function hostOfferTo(viewerId, conn, iceServers) {
   if (peers.has(viewerId)) return;
   const pc = newPeerConnection(iceServers);
   peers.set(viewerId, { pc, conn });
-  localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
+  localStream.getTracks().forEach((t) => addScreenTrack(pc, t, localStream));
 
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: viewerId, data: { candidate: e.candidate } });

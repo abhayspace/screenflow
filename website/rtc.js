@@ -187,11 +187,37 @@ function sfWatchIce(pc) {
   };
 }
 
+// Screen-tuned send setup: temporal scalability (L1T3) so congestion sheds
+// layers instead of resolution, and modern codec preference (AV1 screen
+// content coding > VP9 > default) negotiated per-viewer.
+function sfAddScreenTrack(pc, track, stream) {
+  let tc;
+  try {
+    tc = pc.addTransceiver(track, {
+      direction: 'sendonly',
+      streams: [stream],
+      sendEncodings: [{ scalabilityMode: 'L1T3' }],
+    });
+  } catch {
+    tc = pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] });
+  }
+  try {
+    const caps = RTCPeerConnection.getCapabilities('video').codecs;
+    const pref = [];
+    for (const name of ['AV1X', 'VP9', 'VP8', 'H264']) {
+      const c = caps.find((c) => c.mimeType === `video/${name}`);
+      if (c) pref.push(c);
+    }
+    if (pref.length) tc.setCodecPreferences(pref);
+  } catch { /* older browsers */ }
+  return tc.sender;
+}
+
 async function sfHostOffer(conn, viewerId, stream, onState, registry) {
   const pc = new RTCPeerConnection({ iceServers: await sfIceServers(), iceCandidatePoolSize: 10 });
   sfWatchIce(pc);
   registry?.set(viewerId, pc);
-  stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+  stream.getTracks().forEach((t) => sfAddScreenTrack(pc, t, stream));
 
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: viewerId, data: { candidate: e.candidate } });
