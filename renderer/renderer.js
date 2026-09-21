@@ -178,10 +178,10 @@ async function captureScreen(sourceId) {
 // Adapt down under congestion/CPU load, recover when clean. Sharp text first.
 
 const SF_TIERS = [
-  { maxBitrate: 4_000_000, maxFramerate: 30 },
-  { maxBitrate: 2_500_000, maxFramerate: 24 },
-  { maxBitrate: 1_500_000, maxFramerate: 15 },
-  { maxBitrate: 900_000, maxFramerate: 10 },
+  { maxBitrate: 8_000_000, maxFramerate: 30 },
+  { maxBitrate: 4_000_000, maxFramerate: 24 },
+  { maxBitrate: 2_500_000, maxFramerate: 15 },
+  { maxBitrate: 1_200_000, maxFramerate: 10 },
 ];
 
 async function applyTier(pc, tier) {
