@@ -26,7 +26,7 @@ body::before {
   content: '';
   position: fixed;
   inset: 14px;
-  border: 1.5px solid rgba(0, 0, 0, 0.10);
+  border: 3px solid rgba(0, 0, 0, 0.14);
   border-radius: 28px;
   pointer-events: none;
   z-index: 10;
