@@ -18,9 +18,7 @@
       <a href="share.html" class="active">Share on Web</a>
       <a href="view.html">View on Web</a>
     </nav>
-    <div class="header-actions">
-      <a class="btn primary" href="/">Download</a>
-    </div>
+    <div class="header-actions"></div>
   </header>
 
   <main class="page-wrap">
@@ -51,11 +49,28 @@
     </div>
   </main>
 
+  <p class="hero-foot">
+    <a href="about.html">About</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="refund.html">Refund</a> · <a href="cookies.html">Cookies</a> · <a href="/">Developer</a>
+    &nbsp;© 2026 nextforms
+  </p>
+
   <script src="rtc.js"></script>
+  <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     let stream = null, conn = null;
     const pcs = new Map();
+    const denied = new Set();
+
+    // Restricted viewers get an auth token first; we offer only after they approve.
+    function handleViewer(p) {
+      if (denied.has(p.id) || pcs.has(p.id)) return;
+      if (p.restricted) {
+        conn.send({ type: 'signal', to: p.id, data: { auth: { token: sfAuth.token() } } });
+      } else {
+        offerTo(p.id);
+      }
+    }
 
     $('btn-share-screen').onclick = async () => {
       $('share-status').textContent = '';
@@ -95,15 +110,23 @@
         $('share-status').textContent = e.message;
         return;
       }
-      conn.onPeerJoined = (p) => { if (p.role === 'viewer') offerTo(p.id); };
-      conn.onPeerLeft = (id) => { pcs.get(id)?.close(); pcs.delete(id); updateStatus(); };
+      conn.onPeerJoined = (p) => { if (p.role === 'viewer') handleViewer(p); };
+      conn.onPeerLeft = (id) => { pcs.get(id)?.close(); pcs.delete(id); denied.delete(id); updateStatus(); };
       conn.onSignal = async (from, data) => {
+        if (data.auth === 'ok') return offerTo(from);
+        if (data.auth === 'deny') {
+          denied.add(from);
+          $('live-status').textContent = sfAuth.user()
+            ? 'That device only accepts shares from its own account.'
+            : 'That device only accepts same-account shares — sign in on both devices.';
+          return;
+        }
         const pc = pcs.get(from);
         if (!pc) return;
         if (data.sdp && data.sdp.type === 'answer') await pc.setRemoteDescription(data.sdp);
         else if (data.candidate) { try { await pc.addIceCandidate(data.candidate); } catch {} }
       };
-      for (const p of conn.peers) if (p.role === 'viewer') offerTo(p.id);
+      for (const p of conn.peers) if (p.role === 'viewer') handleViewer(p);
       $('preview-live').srcObject = stream;
       $('step-code').classList.add('hidden');
       $('step-live').classList.remove('hidden');

@@ -80,9 +80,40 @@ function viewerStatusText() {
   return parts.join('  ·  ');
 }
 
+// Restricted mode: only devices signed in to the same account may share.
+function viewerRestricted() {
+  const s = getSession();
+  return !!(s && s.token && $('anyone-share') && !$('anyone-share').checked);
+}
+const approvedHosts = new Set();
+const pendingAuth = new Set();
+
+async function verifyPeerToken(from, data, conn) {
+  const me = getSession();
+  try {
+    const d = await api('/api/me', { token: data.auth.token });
+    const ok = !!(me && d.user && d.user.username === me.user.username);
+    if (ok) approvedHosts.add(from);
+    conn.send({ type: 'signal', to: from, data: { auth: ok ? 'ok' : 'deny' } });
+  } catch {
+    conn.send({ type: 'signal', to: from, data: { auth: 'deny' } });
+  }
+}
+
+// Host side: restricted viewers get our token first; offer only after approval.
+function handleViewerPeer(id, conn, iceServers, restricted) {
+  if (peers.has(id) || pendingAuth.has(id)) return;
+  if (restricted) {
+    pendingAuth.add(id);
+    conn.send({ type: 'signal', to: id, data: { auth: { token: getSession()?.token || null } } });
+  } else {
+    hostOfferTo(id, conn, iceServers);
+  }
+}
+
 /* ---------- Signaling ---------- */
 
-function addConn(url, room, role, iceServers, handlers) {
+function addConn(url, room, role, iceServers, handlers, joinExtra = {}) {
   return new Promise((resolve, reject) => {
     const socket = new WebSocket(url);
     const conn = {
@@ -96,7 +127,7 @@ function addConn(url, room, role, iceServers, handlers) {
       reject(new Error(`Timed out connecting to ${url}`));
     }, 8000);
 
-    socket.onopen = () => conn.send({ type: 'join', room, role });
+    socket.onopen = () => conn.send({ type: 'join', room, role, ...joinExtra });
 
     socket.onmessage = async (ev) => {
       let msg;
@@ -193,6 +224,7 @@ async function handleSignal(from, data, conn, iceServers) {
   let entry = peers.get(from);
 
   if (data.sdp && data.sdp.type === 'offer' && !isHost) {
+    if (viewerRestricted() && !approvedHosts.has(from)) return; // same-account only
     // Viewer side: host is offering its screen.
     if (!entry) {
       const pc = newPeerConnection(iceServers);
@@ -248,6 +280,8 @@ function cleanupSession() {
   isHost = false;
   activeCode = null;
   lanReady = netReady = false;
+  approvedHosts.clear();
+  pendingAuth.clear();
   $('share-preview').srcObject = null;
   $('remote-video').srcObject = null;
   $('remote-video').classList.add('hidden');
@@ -283,11 +317,22 @@ async function startShare({ url, room, iceServers }) {
     const joinedMsg = await addConn(url, room, 'host', iceServers, {
       onMessage: async (msg, conn) => {
         if (msg.type === 'peer-joined' && msg.role === 'viewer') {
-          await hostOfferTo(msg.id, conn, iceServers);
+          handleViewerPeer(msg.id, conn, iceServers, msg.restricted);
         } else if (msg.type === 'signal') {
-          await handleSignal(msg.from, msg.data, conn, iceServers);
+          if (msg.data?.auth === 'ok') {
+            pendingAuth.delete(msg.from);
+            await hostOfferTo(msg.from, conn, iceServers);
+          } else if (msg.data?.auth === 'deny') {
+            pendingAuth.delete(msg.from);
+            setStatus('share-status', getSession()
+              ? 'That device only accepts shares from its own account.'
+              : 'That device only accepts same-account shares — sign in on both devices.');
+          } else {
+            await handleSignal(msg.from, msg.data, conn, iceServers);
+          }
         } else if (msg.type === 'peer-left') {
           closePeer(msg.id);
+          pendingAuth.delete(msg.id);
           setStatus('share-status', `Viewers connected: ${connectedViewerCount()}`);
         }
       },
@@ -301,7 +346,7 @@ async function startShare({ url, room, iceServers }) {
 
     // Offer to viewers already waiting in the room.
     for (const p of joinedMsg.peers || []) {
-      if (p.role === 'viewer') await hostOfferTo(p.id, joinedMsg.conn, iceServers);
+      if (p.role === 'viewer') handleViewerPeer(p.id, joinedMsg.conn, iceServers, p.restricted);
     }
     return true;
   } catch (err) {
@@ -357,6 +402,10 @@ function viewerHandlers(iceServers) {
   return {
     onMessage: async (msg, conn) => {
       if (msg.type === 'signal') {
+        if (msg.data?.auth) {
+          if (viewerRestricted()) await verifyPeerToken(msg.from, msg.data, conn);
+          return;
+        }
         await handleSignal(msg.from, msg.data, conn, iceServers);
       } else if (msg.type === 'peer-left') {
         closePeer(msg.from || msg.id);
@@ -387,7 +436,7 @@ async function startViewer(mode) {
     try {
       const { port } = await window.screenflow.startLanServer();
       await window.screenflow.startDiscovery(code);
-      await addConn(`ws://127.0.0.1:${port}`, code, 'viewer', LAN_ICE, viewerHandlers(LAN_ICE));
+      await addConn(`ws://127.0.0.1:${port}`, code, 'viewer', LAN_ICE, viewerHandlers(LAN_ICE), { restricted: viewerRestricted() });
       lanReady = true;
       setStatus('wait-status', 'Same WiFi: ready — sharer picks “Same WiFi” and enters this code');
     } catch (err) {
@@ -402,7 +451,7 @@ async function startViewer(mode) {
     return;
   }
   try {
-    await addConn(DEFAULT_SIGNAL_SERVER, code, 'viewer', NET_ICE, viewerHandlers(NET_ICE));
+    await addConn(DEFAULT_SIGNAL_SERVER, code, 'viewer', NET_ICE, viewerHandlers(NET_ICE), { restricted: viewerRestricted() });
     netReady = true;
     setStatus('wait-status', 'Internet: ready — sharer picks “Over the internet” and enters this code');
   } catch (err) {
@@ -495,6 +544,7 @@ function updateAuthUI() {
   $('btn-signout').classList.toggle('hidden', !signedIn);
   $('btn-signin').classList.toggle('hidden', signedIn);
   $('btn-signup').classList.toggle('hidden', signedIn);
+  $('viewer-privacy')?.classList.toggle('hidden', !signedIn);
   if (signedIn) $('user-chip').textContent = s.user.name || s.user.username;
 }
 

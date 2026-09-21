@@ -247,6 +247,13 @@ async function authHandler(req, res) {
       return sendJson(res, 200, { ok: true });
     }
 
+    /* ----- session check (who am I / verify another peer's token) ----- */
+    if (req.url === '/api/me') {
+      const user = sessions.get(String(body.token || ''));
+      if (!user) return err('Invalid session', 401);
+      return sendJson(res, 200, { user });
+    }
+
     /* ----- developer card message ----- */
     if (req.url === '/api/dev-message') {
       const message = String(body.message || '').trim();

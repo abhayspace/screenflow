@@ -5,7 +5,7 @@
 const SF_SIGNAL = 'wss://screenflow.nextforms.in/ws';
 const SF_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
 
-function sfConnect(code, role) {
+function sfConnect(code, role, extra = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(SF_SIGNAL);
     const conn = {
@@ -20,7 +20,7 @@ function sfConnect(code, role) {
       close: () => ws.close(),
     };
     const timer = setTimeout(() => reject(new Error('Connection timed out')), 10000);
-    ws.onopen = () => conn.send({ type: 'join', room: code, role });
+    ws.onopen = () => conn.send({ type: 'join', room: code, role, ...extra });
     ws.onmessage = (e) => {
       let m;
       try { m = JSON.parse(e.data); } catch { return; }

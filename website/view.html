@@ -18,9 +18,7 @@
       <a href="share.html">Share on Web</a>
       <a href="view.html" class="active">View on Web</a>
     </nav>
-    <div class="header-actions">
-      <a class="btn primary" href="/">Download</a>
-    </div>
+    <div class="header-actions"></div>
   </header>
 
   <main class="page-wrap">
@@ -31,6 +29,11 @@
       <div class="code-display" id="code-display">······</div>
       <p class="cast-status" id="v-status">Starting…</p>
 
+      <label class="privacy-row hidden" id="privacy-row">
+        <input type="checkbox" id="anyone-share" checked /> Anyone can share to this device
+      </label>
+      <p class="cast-note hidden" id="privacy-note">Off — only devices signed in to your account can share.</p>
+
       <div id="video-wrap" class="hidden">
         <video id="remote" autoplay playsinline class="remote-video"></video>
         <button class="cta-btn orange" id="btn-fullscreen">Fullscreen</button>
@@ -38,17 +41,35 @@
     </div>
   </main>
 
+  <p class="hero-foot">
+    <a href="about.html">About</a> · <a href="terms.html">Terms</a> · <a href="privacy.html">Privacy</a> · <a href="refund.html">Refund</a> · <a href="cookies.html">Cookies</a> · <a href="#" id="link-developer">Developer</a>
+    &nbsp;© 2026 nextforms
+  </p>
+
   <script src="rtc.js"></script>
+  <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
     const code = genCode6();
     $('code-display').textContent = code;
-    let conn = null, pc = null;
+    let conn = null, pc = null, restricted = false;
+    const approved = new Set();
+
+    // Show the privacy toggle only when signed in
+    sfAuth.onchange((s) => {
+      const signedIn = !!(s && s.token);
+      $('privacy-row').classList.toggle('hidden', !signedIn);
+      $('privacy-note').classList.toggle('hidden', !signedIn || $('anyone-share').checked);
+    });
+    $('anyone-share').onchange = () =>
+      $('privacy-note').classList.toggle('hidden', $('anyone-share').checked);
 
     (async () => {
       $('v-status').textContent = 'Connecting…';
+      const s = sfAuth.session();
+      restricted = !!(s && s.token && !$('anyone-share').checked);
       try {
-        conn = await sfConnect(code, 'viewer');
+        conn = await sfConnect(code, 'viewer', { restricted });
       } catch (e) {
         $('v-status').textContent = e.message;
         return;
@@ -56,7 +77,21 @@
       $('v-status').textContent = 'Waiting for a device to share to this code…';
 
       conn.onSignal = async (from, data) => {
+        // Account check: restricted viewers verify the sharer's token.
+        if (data.auth) {
+          if (!restricted) return;
+          try {
+            const d = await sfAuth.api('/api/me', { token: data.auth.token });
+            const ok = d.user?.username === sfAuth.user()?.username;
+            if (ok) approved.add(from);
+            conn.send({ type: 'signal', to: from, data: { auth: ok ? 'ok' : 'deny' } });
+          } catch {
+            conn.send({ type: 'signal', to: from, data: { auth: 'deny' } });
+          }
+          return;
+        }
         if (data.sdp && data.sdp.type === 'offer') {
+          if (restricted && !approved.has(from)) return;
           pc = await sfViewerAnswer(conn, from, data.sdp, {
             onTrack: (s) => {
               $('remote').srcObject = s;

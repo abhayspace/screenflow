@@ -61,12 +61,13 @@ function wireSignaling(wss) {
           members = new Map();
           rooms.set(room, members);
         }
-        const peers = [...members.entries()].map(([id, m]) => ({ id, role: m._role }));
+        const peers = [...members.entries()].map(([id, m]) => ({ id, role: m._role, restricted: !!m._restricted }));
         ws._room = room;
         ws._role = msg.role === 'host' ? 'host' : 'viewer';
+        ws._restricted = !!msg.restricted;
         members.set(ws._id, ws);
         send(ws, { type: 'joined', id: ws._id, room, role: ws._role, peers });
-        broadcast(room, { type: 'peer-joined', id: ws._id, role: ws._role }, ws._id);
+        broadcast(room, { type: 'peer-joined', id: ws._id, role: ws._role, restricted: ws._restricted }, ws._id);
         return;
       }
 
