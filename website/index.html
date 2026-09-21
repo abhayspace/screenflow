@@ -6,7 +6,7 @@
   <title>ScreenFlow — Cast your screen to any PC</title>
   <meta name="description" content="Share your screen from one PC to another — over WiFi with no internet, or over the internet with a 6-digit code." />
   <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="style.css?v=7" />
+  <link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <header class="app-header">
@@ -14,10 +14,64 @@
       <img src="assets/logo.png" class="brand-icon" alt="ScreenFlow logo" />
       <span class="brand-name">SCREENFLOW</span>
     </div>
+    <div class="header-actions">
+      <button class="btn primary" id="btn-download">Download</button>
+    </div>
   </header>
 
   <main class="center-stage">
     <img src="assets/comp.png?v=4" class="hero-img" alt="ScreenFlow" />
   </main>
+
+  <!-- DOWNLOAD MODAL -->
+  <div id="dl-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Download ScreenFlow</h3>
+        <button class="modal-x" data-close aria-label="Close">&times;</button>
+      </div>
+      <a class="dl-option" id="dl-mac-arm" href="https://github.com/abhayspace/screenflow/releases/latest/download/ScreenFlow-mac-arm64.dmg">
+        <span class="dl-text">
+          <span class="dl-name">macOS — Apple Silicon <em class="rec-tag hidden" id="rec-arm">Recommended</em></span>
+          <span class="dl-sub">M1, M2, M3, M4 · .dmg</span>
+        </span>
+        <span class="dl-badge">↓ .dmg</span>
+      </a>
+      <a class="dl-option" id="dl-mac-intel" href="https://github.com/abhayspace/screenflow/releases/latest/download/ScreenFlow-mac-x64.dmg">
+        <span class="dl-text">
+          <span class="dl-name">macOS — Intel <em class="rec-tag hidden" id="rec-intel">Recommended</em></span>
+          <span class="dl-sub">Older Intel Macs · .dmg</span>
+        </span>
+        <span class="dl-badge">↓ .dmg</span>
+      </a>
+      <a class="dl-option" id="dl-win" href="https://github.com/abhayspace/screenflow/releases/latest/download/ScreenFlow-windows.exe">
+        <span class="dl-text">
+          <span class="dl-name">Windows <em class="rec-tag hidden" id="rec-win">Recommended</em></span>
+          <span class="dl-sub">Windows 10 / 11 · .exe installer</span>
+        </span>
+        <span class="dl-badge">↓ .exe</span>
+      </a>
+      <p class="modal-note">Unsigned builds — macOS: right-click → Open · Windows: More info → Run anyway</p>
+    </div>
+  </div>
+
+  <script>
+    const modal = document.getElementById('dl-modal');
+    document.getElementById('btn-download').onclick = () => modal.classList.remove('hidden');
+    modal.querySelectorAll('[data-close]').forEach((el) => {
+      el.onclick = () => modal.classList.add('hidden');
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') modal.classList.add('hidden');
+    });
+
+    // Highlight the detected platform as "Recommended" (Macs default to Apple Silicon)
+    (function () {
+      const ua = navigator.userAgent;
+      if (/Win/.test(ua)) document.getElementById('rec-win').classList.remove('hidden');
+      else if (/Mac/.test(ua)) document.getElementById('rec-arm').classList.remove('hidden');
+    })();
+  </script>
 </body>
 </html>

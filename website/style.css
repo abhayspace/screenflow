@@ -45,6 +45,102 @@ body::before {
   color: #111;
   letter-spacing: 0.3px;
 }
+.header-actions { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+
+.btn {
+  padding: 10px 22px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.btn.primary { background: #111; color: #fff; }
+.btn.primary:hover { background: #333; }
+
+/* download modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal.hidden, .hidden { display: none; }
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+}
+.modal-card {
+  position: relative;
+  background: #fff;
+  border-radius: 20px;
+  padding: 8px;
+  width: min(430px, 90vw);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px 8px;
+}
+.modal-head h3 { margin: 0; font-size: 18px; }
+.modal-x {
+  background: none;
+  border: none;
+  font-size: 26px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+  padding: 0 6px;
+}
+.modal-x:hover { color: #111; }
+
+.dl-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 18px;
+  border-radius: 14px;
+  text-decoration: none;
+  color: #111;
+  transition: background 0.15s;
+}
+.dl-option:hover { background: #f0f0f2; }
+.dl-text { display: flex; flex-direction: column; gap: 3px; }
+.dl-name { font-weight: 700; font-size: 15px; }
+.dl-sub { font-size: 12px; color: #888; }
+.dl-badge {
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid #111;
+  border-radius: 999px;
+  padding: 6px 14px;
+  white-space: nowrap;
+}
+.rec-tag {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 700;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  margin-left: 6px;
+  vertical-align: 2px;
+}
+.modal-note {
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+  padding: 10px 16px 14px;
+  margin: 0;
+}
 
 .center-stage {
   flex: 1;
