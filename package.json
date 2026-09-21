@@ -1,0 +1,72 @@
+{
+  "name": "screenflow",
+  "version": "1.0.0",
+  "description": "Cast your screen from one PC to another over LAN (no internet) or over the internet.",
+  "main": "main.js",
+  "author": "ScreenFlow",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "signal-server": "node server/signaling-server.js",
+    "server": "node server/server.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.screenflow.app",
+    "productName": "ScreenFlow",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "signaling.js",
+      "renderer/**/*",
+      "server/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "title": "ScreenFlow"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "ScreenFlow"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

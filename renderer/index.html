@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' ws: wss: http: https: stun: turn:; img-src 'self' data:; media-src 'self' blob:" />
+  <title>ScreenFlow</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <img src="assets/icon.png" class="brand-icon" alt="" />
+      <span class="brand-name">SCREENFLOW</span>
+    </div>
+    <div class="header-actions">
+      <span id="user-chip" class="hidden"></span>
+      <button class="btn secondary small hidden" id="btn-signout">Sign out</button>
+      <button class="btn secondary small" id="btn-signin">Sign in</button>
+      <button class="btn primary small" id="btn-signup">Sign up</button>
+    </div>
+  </header>
+  <div id="app">
+
+    <!-- HOME -->
+    <section id="view-home" class="view">
+      <div class="cards">
+        <button class="card" id="btn-share">
+          <span class="card-title">Share my screen</span>
+          <span class="card-desc">This PC's screen will be visible on another device</span>
+        </button>
+        <button class="card" id="btn-view">
+          <span class="card-title">View a screen</span>
+          <span class="card-desc">Watch another PC's screen on this device</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- AUTH: sign in -->
+    <section id="view-signin" class="view hidden">
+      <div class="auth-card">
+        <h2>Sign in</h2>
+        <label>Email or username <input id="signin-id" type="text" autocomplete="username" /></label>
+        <label>Password <input id="signin-pass" type="password" autocomplete="current-password" /></label>
+        <p id="signin-status" class="status"></p>
+        <div class="row">
+          <button class="btn secondary" data-back>Back</button>
+          <button class="btn primary" id="btn-signin-go">Sign in</button>
+        </div>
+        <p class="hint">No account? <a href="#" id="link-to-signup" class="link">Sign up</a></p>
+      </div>
+    </section>
+
+    <!-- AUTH: sign up -->
+    <section id="view-signup" class="view hidden">
+      <div class="auth-card">
+        <h2>Create account</h2>
+        <div id="signup-form">
+          <label>Name <input id="signup-name" type="text" autocomplete="name" /></label>
+          <label>Username <input id="signup-username" type="text" autocomplete="username" /></label>
+          <label>Gmail <input id="signup-email" type="email" autocomplete="email" placeholder="you@gmail.com" /></label>
+          <label>Password <input id="signup-pass" type="password" autocomplete="new-password" /></label>
+          <button class="btn primary" id="btn-signup-send">Send OTP</button>
+        </div>
+        <div id="signup-otp-block" class="hidden">
+          <p class="hint">We emailed a 6-digit code to <b id="signup-email-echo"></b></p>
+          <label>OTP <input id="signup-otp" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code" /></label>
+          <div class="row tight">
+            <button class="btn primary" id="btn-signup-verify">Verify &amp; create</button>
+            <button class="btn secondary" id="btn-otp-resend">Resend</button>
+          </div>
+        </div>
+        <p id="signup-status" class="status"></p>
+        <div class="row"><button class="btn secondary" data-back>Back</button></div>
+      </div>
+    </section>
+
+    <!-- SHARE: pick screen -->
+    <section id="view-share-pick" class="view hidden">
+      <h2>Choose a screen to share</h2>
+      <div id="perm-box" class="info-box hidden">
+        <p>ScreenFlow needs <b>Screen Recording</b> permission to show your screens.</p>
+        <div class="row tight">
+          <button class="btn primary" id="btn-grant-perm">Grant permission</button>
+          <button class="btn secondary" id="btn-open-settings">Open System Settings</button>
+        </div>
+        <p class="hint">After granting, fully quit and reopen the app (Cmd+Q), or press Refresh.</p>
+      </div>
+      <div id="source-list" class="source-list"></div>
+      <div class="row">
+        <button class="btn secondary" data-back>Back</button>
+        <button class="btn secondary" id="btn-refresh-sources">Refresh</button>
+      </div>
+    </section>
+
+    <!-- SHARE: connection mode -->
+    <section id="view-share-mode" class="view hidden">
+      <h2>How will the other device receive it?</h2>
+      <div class="cards">
+        <button class="card" id="btn-share-lan">
+          <span class="card-title">Same WiFi / network</span>
+          <span class="card-desc">No internet needed — devices just need to be on the same network</span>
+        </button>
+        <button class="card" id="btn-share-internet">
+          <span class="card-title">Over the internet</span>
+          <span class="card-desc">For devices on different networks</span>
+        </button>
+      </div>
+      <div class="row"><button class="btn secondary" data-back>Back</button></div>
+    </section>
+
+    <!-- VIEW: connection mode -->
+    <section id="view-view-mode" class="view hidden">
+      <h2>Where is the sharing device?</h2>
+      <div class="cards">
+        <button class="card" id="btn-view-lan">
+          <span class="card-title">Same WiFi / network</span>
+          <span class="card-desc">No internet needed — devices just need to be on the same network</span>
+        </button>
+        <button class="card" id="btn-view-internet">
+          <span class="card-title">Over the internet</span>
+          <span class="card-desc">For devices on different networks</span>
+        </button>
+      </div>
+      <div class="row"><button class="btn secondary" data-back>Back</button></div>
+    </section>
+
+    <!-- SHARE: enter code -->
+    <section id="view-share-code" class="view hidden">
+      <h2>Enter the code on the other device</h2>
+      <p class="hint" id="share-code-hint">The device that tapped “View a screen” shows a 6-digit code.</p>
+      <label>6-digit code
+        <input id="share-code" type="text" inputmode="numeric" maxlength="6" placeholder="123456" autocomplete="off" />
+      </label>
+      <p id="share-error" class="error"></p>
+      <p id="share-finding" class="status"></p>
+      <div class="row">
+        <button class="btn secondary" data-back>Back</button>
+        <button class="btn primary" id="btn-share-connect">Share</button>
+      </div>
+    </section>
+
+    <!-- SHARE: live -->
+    <section id="view-share-live" class="view hidden">
+      <h2>Sharing your screen</h2>
+      <div id="share-info" class="info-box"></div>
+      <video id="share-preview" autoplay muted playsinline></video>
+      <p id="share-status" class="status"></p>
+      <div class="row"><button class="btn stop" id="btn-stop-share">Stop sharing</button></div>
+    </section>
+
+    <!-- VIEW: waiting / watching -->
+    <section id="view-waiting" class="view hidden">
+      <h2>Ready to receive</h2>
+      <div class="info-box center">
+        <span class="hint">Ask the sharer to enter this code</span>
+        <div class="big-code" id="wait-code">------</div>
+      </div>
+      <video id="remote-video" autoplay playsinline class="hidden"></video>
+      <p id="wait-status" class="status">Starting…</p>
+      <div class="row">
+        <button class="btn secondary hidden" id="btn-fullscreen">Fullscreen</button>
+        <button class="btn stop" id="btn-stop-view">Stop</button>
+      </div>
+    </section>
+
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
