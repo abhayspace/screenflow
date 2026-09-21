@@ -165,7 +165,7 @@ body::before {
 }
 .pix-word {
   position: absolute;
-  z-index: 0;
+  z-index: 6;            /* text renders on top of the comp image */
   font-family: 'Press Start 2P', monospace;
   font-size: clamp(38px, 7.5vw, 115px);
   color: #fff;
@@ -174,7 +174,7 @@ body::before {
   white-space: nowrap;
 }
 .pix-word.left {
-  right: 55%;          /* right edge lands under the comp's left side */
+  right: 52%;          /* N lands ON the comp's left side */
   top: 45%;
 }
 .pix-word.right {
