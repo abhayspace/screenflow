@@ -37,7 +37,7 @@ jobs:
       - run: npm ci
 
       - name: Build installer
-        run: npx electron-builder ${{ matrix.builder }}
+        run: npx electron-builder ${{ matrix.builder }} --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # unsigned; add certs for signing
 
