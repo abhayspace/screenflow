@@ -690,6 +690,8 @@ function setTheme(t) {
   localStorage.setItem('screenflow.theme', t);
   $('btn-light').classList.toggle('on', t === 'light');
   $('btn-dark').classList.toggle('on', t !== 'light');
+  const icon = document.querySelector('.brand-icon');
+  if (icon) icon.src = t === 'light' ? 'assets/webside.png' : 'assets/icon.png';
 }
 $('btn-light').onclick = () => setTheme('light');
 $('btn-dark').onclick = () => setTheme('dark');
