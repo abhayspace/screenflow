@@ -165,9 +165,116 @@ async function captureScreen(sourceId) {
     await window.screenflow.setShareSource(sourceId);
   }
   return navigator.mediaDevices.getDisplayMedia({
-    video: { frameRate: { ideal: 30 } },
+    video: {
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      frameRate: { ideal: 30, max: 30 },
+    },
     audio: false,
   });
+}
+
+/* ---------- Quality tiers + diagnostics ---------- */
+// Adapt down under congestion/CPU load, recover when clean. Sharp text first.
+
+const SF_TIERS = [
+  { maxBitrate: 4_000_000, maxFramerate: 30 },
+  { maxBitrate: 2_500_000, maxFramerate: 24 },
+  { maxBitrate: 1_500_000, maxFramerate: 15 },
+  { maxBitrate: 900_000, maxFramerate: 10 },
+];
+
+async function applyTier(pc, tier) {
+  const t = SF_TIERS[tier];
+  for (const s of pc.getSenders()) {
+    if (s.track?.kind !== 'video') continue;
+    try { s.track.contentHint = 'detail'; } catch {}
+    try {
+      const p = s.getParameters();
+      if (!p.encodings?.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = t.maxBitrate;
+      p.encodings[0].maxFramerate = t.maxFramerate;
+      await s.setParameters(p);
+    } catch { /* unsupported */ }
+    try {
+      const p = s.getParameters();
+      p.degradationPreference = 'maintain-resolution';
+      await s.setParameters(p);
+    } catch { /* nonstandard field */ }
+  }
+}
+
+function statsLoop(pc, cb) {
+  let prev = null;
+  const timer = setInterval(async () => {
+    if (pc.signalingState === 'closed') return clearInterval(timer);
+    let report;
+    try { report = await pc.getStats(); } catch { return; }
+    const m = { ts: Date.now() };
+    let outV = null, inV = null, remIn = null, pair = null;
+    report.forEach((r) => {
+      if (r.type === 'outbound-rtp' && r.kind === 'video' && !r.isRemote) outV = r;
+      else if (r.type === 'inbound-rtp' && r.kind === 'video' && !r.isRemote) inV = r;
+      else if (r.type === 'remote-inbound-rtp' && r.kind === 'video') remIn = r;
+      else if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r;
+    });
+    if (pair) {
+      m.rtt = pair.currentRoundTripTime;
+      m.availKbps = pair.availableOutgoingBitrate ? pair.availableOutgoingBitrate / 1000 : null;
+      const lc = report.get(pair.localCandidateId);
+      const rc = report.get(pair.remoteCandidateId);
+      m.ice = lc ? `${lc.candidateType}→${rc ? rc.candidateType : '?'}` : null;
+    }
+    if (outV) {
+      m.sent = outV.bytesSent; m.fps = outV.framesPerSecond; m.enc = outV.framesEncoded;
+      m.w = outV.frameWidth; m.h = outV.frameHeight; m.qlr = outV.qualityLimitationReason;
+    }
+    if (inV) {
+      m.recv = inV.bytesReceived; m.dfps = inV.framesPerSecond; m.dec = inV.framesDecoded;
+      m.dropped = inV.framesDropped; m.lost = inV.packetsLost; m.jitter = inV.jitter;
+      m.dw = inV.frameWidth; m.dh = inV.frameHeight;
+    }
+    if (remIn) { m.rFraction = remIn.fractionLost; m.rLost = remIn.packetsLost; m.rJitter = remIn.jitter; }
+    if (prev) {
+      const dt = (m.ts - prev.ts) / 1000;
+      if (dt > 0) {
+        if (m.sent != null && prev.sent != null) m.kbps = ((m.sent - prev.sent) * 8) / dt / 1000;
+        if (m.recv != null && prev.recv != null) m.rkbps = ((m.recv - prev.recv) * 8) / dt / 1000;
+        if (m.lost != null && prev.lost != null) m.lostDelta = m.lost - prev.lost;
+      }
+    }
+    prev = m;
+    cb?.(m);
+  }, 2000);
+  return () => clearInterval(timer);
+}
+
+function startAdaptive(pc) {
+  let tier = 0, good = 0;
+  const stop = statsLoop(pc, (m) => {
+    const congested =
+      (m.rFraction != null && m.rFraction > 0.06) ||
+      (m.rtt != null && m.rtt > 0.35) ||
+      (m.availKbps != null && m.kbps != null && m.kbps > m.availKbps * 0.95 && m.qlr === 'bandwidth');
+    const cpuBound = m.qlr === 'cpu' || m.qlr === 'other';
+    if ((congested || cpuBound) && tier < SF_TIERS.length - 1) {
+      good = 0; tier++; applyTier(pc, tier);
+    } else if (!congested && !cpuBound && tier > 0 && ++good >= 8) {
+      good = 0; tier--; applyTier(pc, tier);
+    }
+  });
+  pc._stopLoops = (pc._stopLoops || []).concat(stop);
+}
+
+function startPeerStats(pc) {
+  const stop = statsLoop(pc, (m) => {
+    if (m.kbps == null || !$('share-stats')) return;
+    $('share-stats').textContent =
+      `${m.w || '?'}×${m.h || '?'} · ${Math.round(m.fps || 0)}fps · ${(m.kbps / 1000).toFixed(1)}Mbps · ` +
+      `RTT ${Math.round((m.rtt || 0) * 1000)}ms · loss ${(((m.rFraction) || 0) * 100).toFixed(1)}% · ${m.ice || 'p2p'}` +
+      (m.qlr && m.qlr !== 'none' ? ` · limited by ${m.qlr}` : '');
+  });
+  pc._stopLoops = (pc._stopLoops || []).concat(stop);
 }
 
 /* ---------- WebRTC ---------- */
@@ -207,16 +314,9 @@ async function hostOfferTo(viewerId, conn, iceServers) {
   await pc.setLocalDescription(offer);
   conn.send({ type: 'signal', to: viewerId, data: { sdp: pc.localDescription } });
 
-  // Screen quality: sharp text + generous bitrate (applied after negotiation).
-  for (const s of pc.getSenders()) {
-    if (s.track?.kind !== 'video') continue;
-    try { s.track.contentHint = 'detail'; } catch {}
-    try {
-      const p = s.getParameters();
-      p.encodings = [{ maxBitrate: 10_000_000 }];
-      await s.setParameters(p);
-    } catch { /* older Chromium */ }
-  }
+  await applyTier(pc, 0); // negotiate first, then set encoding caps
+  startAdaptive(pc);      // congestion/CPU-aware bitrate+fps control
+  startPeerStats(pc);     // getStats diagnostics → share-stats line
 }
 
 // Shared signal handling for both roles.
@@ -239,6 +339,13 @@ async function handleSignal(from, data, conn, iceServers) {
         $('remote-video').classList.remove('hidden');
         $('btn-fullscreen').classList.remove('hidden');
         setStatus('wait-status', 'Receiving stream…');
+        const stop = statsLoop(pc, (m) => {
+          if (m.rkbps == null || !$('wait-stats')) return;
+          $('wait-stats').textContent =
+            `${m.dw || '?'}×${m.dh || '?'} · ${Math.round(m.dfps || 0)}fps · ${(m.rkbps / 1000).toFixed(1)}Mbps · ` +
+            `RTT ${Math.round((m.rtt || 0) * 1000)}ms · loss ${m.lostDelta || 0} pkts · dropped ${m.dropped || 0} · ${m.ice || 'p2p'}`;
+        });
+        pc._stopLoops = (pc._stopLoops || []).concat(stop);
       };
     }
     await entry.pc.setRemoteDescription(data.sdp);
@@ -258,7 +365,11 @@ async function handleSignal(from, data, conn, iceServers) {
 
 function closePeer(id) {
   const entry = peers.get(id);
-  if (entry) { entry.pc.close(); peers.delete(id); }
+  if (entry) {
+    (entry.pc._stopLoops || []).forEach((fn) => fn());
+    entry.pc.close();
+    peers.delete(id);
+  }
 }
 
 /* ---------- Session lifecycle ---------- */

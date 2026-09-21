@@ -1,9 +1,17 @@
 // Shared WebRTC + signaling for the web pages.
 // Same protocol as the desktop app: join {type,room,role} -> joined/peer-joined;
 // relay {type:'signal', to, data} <-> {type:'signal', from, data}.
+// Media is peer-to-peer only — the signaling server never sees video.
 
 const SF_SIGNAL = 'wss://screenflow.nextforms.in/ws';
 const SF_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
+// Optional TURN fallback for restrictive NATs — provision coturn/CF Calls and add:
+// { urls: 'turn:turn.example.com:3478', username: 'user', credential: 'pass' }
+const SF_TURN = [];
+
+function sfIceServers() {
+  return SF_TURN.length ? [...SF_ICE, ...SF_TURN] : SF_ICE;
+}
 
 function sfConnect(code, role, extra = {}) {
   return new Promise((resolve, reject) => {
@@ -39,9 +47,126 @@ function sfConnect(code, role, extra = {}) {
   });
 }
 
+/* ---------- Quality tiers (adapt down under load, recover up when clean) ---------- */
+
+const SF_TIERS = [
+  { maxBitrate: 4_000_000, maxFramerate: 30 }, // good: 1080p-ish, full fps
+  { maxBitrate: 2_500_000, maxFramerate: 24 }, // moderate: keep resolution, ease bitrate/fps
+  { maxBitrate: 1_500_000, maxFramerate: 15 }, // poor
+  { maxBitrate: 900_000, maxFramerate: 10 },   // very poor
+];
+
+async function sfApplyTier(pc, tier) {
+  const t = SF_TIERS[tier];
+  for (const s of pc.getSenders()) {
+    if (s.track?.kind !== 'video') continue;
+    try { s.track.contentHint = 'detail'; } catch {}
+    try {
+      const p = s.getParameters();
+      if (!p.encodings?.length) p.encodings = [{}];
+      p.encodings[0].maxBitrate = t.maxBitrate;
+      p.encodings[0].maxFramerate = t.maxFramerate;
+      await s.setParameters(p);
+    } catch { /* unsupported */ }
+    try {
+      const p = s.getParameters();
+      p.degradationPreference = 'maintain-resolution'; // sharp text > fps
+      await s.setParameters(p);
+    } catch { /* nonstandard field */ }
+  }
+}
+
+/* ---------- getStats diagnostics ---------- */
+// Every 2s reports: fps, resolution, send/recv kbps, packet loss, jitter, RTT,
+// frames encoded/decoded/dropped, QP, quality limitation reason, ICE pair type.
+
+function sfStatsLoop(pc, cb) {
+  let prev = null;
+  const timer = setInterval(async () => {
+    if (pc.signalingState === 'closed') return clearInterval(timer);
+    let report;
+    try { report = await pc.getStats(); } catch { return; }
+
+    const m = { ts: Date.now() };
+    let outV = null, inV = null, remIn = null, pair = null;
+    report.forEach((r) => {
+      if (r.type === 'outbound-rtp' && r.kind === 'video' && !r.isRemote) outV = r;
+      else if (r.type === 'inbound-rtp' && r.kind === 'video' && !r.isRemote) inV = r;
+      else if (r.type === 'remote-inbound-rtp' && r.kind === 'video') remIn = r;
+      else if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r;
+    });
+
+    if (pair) {
+      m.rtt = pair.currentRoundTripTime;
+      m.availKbps = pair.availableOutgoingBitrate ? pair.availableOutgoingBitrate / 1000 : null;
+      const lc = report.get(pair.localCandidateId);
+      const rc = report.get(pair.remoteCandidateId);
+      m.ice = lc ? `${lc.candidateType}→${rc ? rc.candidateType : '?'}` : null;
+    }
+    if (outV) {
+      m.sent = outV.bytesSent; m.fps = outV.framesPerSecond; m.enc = outV.framesEncoded;
+      m.w = outV.frameWidth; m.h = outV.frameHeight;
+      m.qlr = outV.qualityLimitationReason;
+    }
+    if (inV) {
+      m.recv = inV.bytesReceived; m.dfps = inV.framesPerSecond; m.dec = inV.framesDecoded;
+      m.dropped = inV.framesDropped; m.lost = inV.packetsLost; m.jitter = inV.jitter;
+      m.dw = inV.frameWidth; m.dh = inV.frameHeight;
+    }
+    if (remIn) {
+      m.rFraction = remIn.fractionLost; m.rLost = remIn.packetsLost;
+      m.rJitter = remIn.jitter; m.rRtt = remIn.roundTripTime;
+    }
+
+    if (prev) {
+      const dt = (m.ts - prev.ts) / 1000;
+      if (dt > 0) {
+        if (m.sent != null && prev.sent != null) m.kbps = ((m.sent - prev.sent) * 8) / dt / 1000;
+        if (m.recv != null && prev.recv != null) m.rkbps = ((m.recv - prev.recv) * 8) / dt / 1000;
+        if (m.lost != null && prev.lost != null) m.lostDelta = m.lost - prev.lost;
+        if (m.enc != null && prev.enc != null) m.encDelta = m.enc - prev.enc;
+        if (m.dec != null && prev.dec != null) m.decDelta = m.dec - prev.dec;
+      }
+    }
+    prev = m;
+    cb?.(m);
+  }, 2000);
+  return () => clearInterval(timer);
+}
+
+/* ---------- Adaptive controller (sender side) ---------- */
+// Down a tier on real congestion (loss >6%, RTT >350ms, encoder bandwidth-capped
+// while saturated) or CPU limits; recover one tier after ~16s clean.
+
+function sfAdaptive(pc, onTier) {
+  let tier = 0;
+  let goodStreak = 0;
+  return sfStatsLoop(pc, (m) => {
+    const congested =
+      (m.rFraction != null && m.rFraction > 0.06) ||
+      (m.rtt != null && m.rtt > 0.35) ||
+      (m.availKbps != null && m.kbps != null && m.kbps > m.availKbps * 0.95 && m.qlr === 'bandwidth');
+    const cpuBound = m.qlr === 'cpu' || m.qlr === 'other';
+
+    if ((congested || cpuBound) && tier < SF_TIERS.length - 1) {
+      goodStreak = 0;
+      tier++;
+      sfApplyTier(pc, tier);
+      onTier?.(tier, m);
+    } else if (!congested && !cpuBound && tier > 0 && ++goodStreak >= 8) {
+      goodStreak = 0;
+      tier--;
+      sfApplyTier(pc, tier);
+      onTier?.(tier, m);
+    }
+  });
+}
+
+/* ---------- Peer helpers ---------- */
+
 // Host side: offer our screen stream to a viewer.
 async function sfHostOffer(conn, viewerId, stream, onState) {
-  const pc = new RTCPeerConnection({ iceServers: SF_ICE });
+  const pc = new RTCPeerConnection({ iceServers: sfIceServers() });
   stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
   pc.onicecandidate = (e) => {
@@ -52,22 +177,13 @@ async function sfHostOffer(conn, viewerId, stream, onState) {
   await pc.setLocalDescription(offer);
   conn.send({ type: 'signal', to: viewerId, data: { sdp: pc.localDescription } });
 
-  // Screen quality: sharp text + generous bitrate (applied after negotiation).
-  for (const s of pc.getSenders()) {
-    if (s.track?.kind !== 'video') continue;
-    try { s.track.contentHint = 'detail'; } catch {}
-    try {
-      const p = s.getParameters();
-      p.encodings = [{ maxBitrate: 10_000_000 }];
-      await s.setParameters(p);
-    } catch { /* older browsers */ }
-  }
+  await sfApplyTier(pc, 0); // negotiate first, then set encoding caps
   return pc;
 }
 
 // Viewer side: answer a host's offer; onTrack(stream) when video arrives.
 async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
-  const pc = new RTCPeerConnection({ iceServers: SF_ICE });
+  const pc = new RTCPeerConnection({ iceServers: sfIceServers() });
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: hostId, data: { candidate: e.candidate } });
   };

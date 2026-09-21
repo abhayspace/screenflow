@@ -210,6 +210,8 @@ video {
 #remote-video { max-height: 72vh; }
 
 .status { color: #9aa0a6; font-size: 14px; }
+.stats-line { font-size: 12px; color: #7a8087; margin-top: 6px; }
+video { object-fit: contain; }
 .error { color: #ff7b72; font-size: 13px; min-height: 18px; }
 
 /* ---------- theme toggle ---------- */

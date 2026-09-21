@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Share on Web — ScreenFlow</title>
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=42" />
+  <link rel="stylesheet" href="style.css?v=43" />
 </head>
 <body>
   <header class="app-header">
@@ -42,6 +42,7 @@
       <div id="step-live" class="hidden">
         <video id="preview-live" autoplay muted playsinline class="preview-video"></video>
         <p id="live-status" class="cast-status">Sharing…</p>
+        <p id="share-stats" class="stats-line"></p>
         <button class="cta-btn grey" id="btn-stop">Stop sharing</button>
       </div>
 
@@ -79,7 +80,7 @@
           video: {
             width: { ideal: 1920 },
             height: { ideal: 1080 },
-            frameRate: { ideal: 30, max: 60 },
+            frameRate: { ideal: 30, max: 30 },
           },
           audio: false,
         });
@@ -137,6 +138,17 @@
       if (pcs.has(id)) return;
       const pc = await sfHostOffer(conn, id, stream, () => updateStatus());
       pcs.set(id, pc);
+      // per-peer stats + adaptive quality
+      sfAdaptive(pc);
+      const stopStats = sfStatsLoop(pc, (m) => {
+        if (!pcs.has(id)) return stopStats();
+        if (m.kbps != null) {
+          $('share-stats').textContent =
+            `${m.w || '?'}×${m.h || '?'} · ${Math.round(m.fps || 0)}fps · ${(m.kbps / 1000).toFixed(1)}Mbps · ` +
+            `RTT ${Math.round((m.rtt || m.rRtt || 0) * 1000)}ms · loss ${(((m.rFraction) || 0) * 100).toFixed(1)}% · ${m.ice || 'p2p'}` +
+            (m.qlr && m.qlr !== 'none' ? ` · limited by ${m.qlr}` : '');
+        }
+      });
     }
 
     function updateStatus() {
@@ -154,6 +166,7 @@
       stream = null;
       $('preview').srcObject = null;
       $('preview-live').srcObject = null;
+      $('share-stats').textContent = '';
       $('step-code').classList.add('hidden');
       $('step-live').classList.add('hidden');
       $('step-perm').classList.remove('hidden');

@@ -104,7 +104,15 @@ body::before {
   width: 100%;
   border-radius: 12px;
   background: #000;
-  aspect-ratio: 16/9;
+  object-fit: contain;
+}
+.remote-video { aspect-ratio: 16/9; }
+.stats-line {
+  font-size: 11.5px;
+  color: #888;
+  margin: 10px 0 0;
+  text-align: center;
+  letter-spacing: 0.02em;
 }
 #video-wrap { margin-top: 16px; }
 #video-wrap .btn { margin-top: 12px; }

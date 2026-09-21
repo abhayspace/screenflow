@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>View on Web — ScreenFlow</title>
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=42" />
+  <link rel="stylesheet" href="style.css?v=43" />
 </head>
 <body>
   <header class="app-header">
@@ -37,6 +37,7 @@
       <div id="video-wrap" class="hidden">
         <video id="remote" autoplay playsinline class="remote-video"></video>
         <button class="cta-btn orange" id="btn-fullscreen">Fullscreen</button>
+        <p id="view-stats" class="stats-line"></p>
       </div>
     </div>
   </main>
@@ -97,6 +98,15 @@
               $('remote').srcObject = s;
               $('video-wrap').classList.remove('hidden');
               $('v-status').textContent = 'Receiving stream…';
+              const stopStats = sfStatsLoop(pc, (m) => {
+                if (!pc || pc.signalingState === 'closed') return stopStats();
+                if (m.rkbps != null) {
+                  $('view-stats').textContent =
+                    `${m.dw || '?'}×${m.dh || '?'} · ${Math.round(m.dfps || 0)}fps · ${(m.rkbps / 1000).toFixed(1)}Mbps · ` +
+                    `RTT ${Math.round((m.rtt || 0) * 1000)}ms · loss ${m.lostDelta || 0} pkts · ` +
+                    `dropped ${m.dropped || 0} · ${m.ice || 'p2p'}`;
+                }
+              });
             },
             onState: (id, st) => {
               if (st === 'connected') $('v-status').textContent = 'Connected — receiving screen';
