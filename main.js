@@ -1,8 +1,24 @@
 const { app, BrowserWindow, ipcMain, desktopCapturer, session, systemPreferences, shell, nativeImage } = require('electron');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const dgram = require('dgram');
 const { createSignalingServer } = require('./signaling');
+
+// Startup/crash logging → userData/screenflow.log (helps debug silent launches).
+function logLine(...args) {
+  try {
+    fs.appendFileSync(
+      path.join(app.getPath('userData'), 'screenflow.log'),
+      `${new Date().toISOString()} ${args.join(' ')}\n`
+    );
+  } catch { /* not ready yet */ }
+}
+process.on('uncaughtException', (e) => logLine('uncaughtException:', e.stack || String(e)));
+process.on('unhandledRejection', (e) => logLine('unhandledRejection:', (e && e.stack) || String(e)));
+
+// Some Windows GPU drivers kill the window before it ever shows.
+app.disableHardwareAcceleration();
 
 const SIGNAL_PORT = 45455;
 const DISCOVERY_PORT = 45456;
@@ -60,6 +76,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  logLine('app ready', app.getVersion(), process.platform, os.release());
   // Route getDisplayMedia() through our own source picker choice instead of
   // Chromium's picker. On macOS this uses ScreenCaptureKit, which is what
   // triggers the system Screen Recording permission prompt.
