@@ -55,22 +55,21 @@ body::before {
   transform: translateX(-50%);
   display: flex;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.55);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  border-radius: 999px;
-  padding: 5px;
+  background: #aeaeae;
+  border-radius: 18px;
+  padding: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 .nav-pill a {
-  padding: 9px 18px;
-  border-radius: 999px;
-  font-size: 14px;
-  color: #333;
+  padding: 11px 24px;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #fff;
   text-decoration: none;
   white-space: nowrap;
 }
-.nav-pill a:hover:not(.active) { background: rgba(0, 0, 0, 0.06); }
-.nav-pill a.active { background: #1c1c1c; color: #fff; }
+.nav-pill a:hover:not(.active) { background: rgba(0, 0, 0, 0.10); }
+.nav-pill a.active { background: #5e5e60; color: #fff; }
 
 /* share/view web cards */
 .cast-card { max-width: 520px; text-align: center; }
