@@ -1,6 +1,6 @@
 {
   "name": "screenflow",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cast your screen from one PC to another over LAN (no internet) or over the internet.",
   "main": "main.js",
   "author": "ScreenFlow",
