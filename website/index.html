@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ScreenFlow — Cast your screen to any PC</title>
   <meta name="description" content="Share your screen from one PC to another — over WiFi with no internet, or over the internet with a 6-digit code." />
-  <link rel="icon" href="assets/logo.png" />
-  <link rel="stylesheet" href="style.css?v=8" />
+  <link rel="icon" href="assets/logo.png?v=9" />
+  <link rel="stylesheet" href="style.css?v=9" />
 </head>
 <body>
   <header class="app-header">
     <div class="brand">
-      <img src="assets/logo.png" class="brand-icon" alt="ScreenFlow logo" />
+      <img src="assets/logo.png?v=9" class="brand-icon" alt="ScreenFlow logo" />
       <span class="brand-name">SCREENFLOW</span>
     </div>
     <div class="header-actions">
@@ -33,21 +33,21 @@
       </div>
       <a class="dl-option" id="dl-mac-arm" href="https://github.com/abhayspace/screenflow/releases/latest/download/ScreenFlow-mac-arm64.dmg">
         <span class="dl-text">
-          <span class="dl-name">macOS — Apple Silicon <em class="rec-tag hidden" id="rec-arm">Recommended</em></span>
+          <span class="dl-name">macOS — Apple Silicon</span>
           <span class="dl-sub">M1, M2, M3, M4 · .dmg</span>
         </span>
         <span class="dl-badge">↓ .dmg</span>
       </a>
       <a class="dl-option" id="dl-mac-intel" href="https://github.com/abhayspace/screenflow/releases/latest/download/ScreenFlow-mac-x64.dmg">
         <span class="dl-text">
-          <span class="dl-name">macOS — Intel <em class="rec-tag hidden" id="rec-intel">Recommended</em></span>
+          <span class="dl-name">macOS — Intel</span>
           <span class="dl-sub">Older Intel Macs · .dmg</span>
         </span>
         <span class="dl-badge">↓ .dmg</span>
       </a>
       <a class="dl-option" id="dl-win" href="https://github.com/abhayspace/screenflow/releases/latest/download/ScreenFlow-windows.exe">
         <span class="dl-text">
-          <span class="dl-name">Windows <em class="rec-tag hidden" id="rec-win">Recommended</em></span>
+          <span class="dl-name">Windows</span>
           <span class="dl-sub">Windows 10 / 11 · .exe installer</span>
         </span>
         <span class="dl-badge">↓ .exe</span>
@@ -65,13 +65,6 @@
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') modal.classList.add('hidden');
     });
-
-    // Highlight the detected platform as "Recommended" (Macs default to Apple Silicon)
-    (function () {
-      const ua = navigator.userAgent;
-      if (/Win/.test(ua)) document.getElementById('rec-win').classList.remove('hidden');
-      else if (/Mac/.test(ua)) document.getElementById('rec-arm').classList.remove('hidden');
-    })();
   </script>
 </body>
 </html>
