@@ -173,8 +173,23 @@ function sfAdaptive(pc, onTier) {
 // Host side: offer our screen stream to a viewer.
 // registry (optional Map) registers the pc BEFORE any await, so early
 // answers/candidates from the viewer are never dropped.
+// Recover dead paths: on ICE failure, restart gathering instead of dying.
+function sfWatchIce(pc) {
+  let discTimer = null;
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === 'failed') {
+      try { pc.restartIce(); } catch {}
+    } else if (pc.iceConnectionState === 'disconnected') {
+      discTimer = setTimeout(() => {
+        if (pc.iceConnectionState === 'disconnected') { try { pc.restartIce(); } catch {} }
+      }, 4000);
+    } else if (discTimer) { clearTimeout(discTimer); discTimer = null; }
+  };
+}
+
 async function sfHostOffer(conn, viewerId, stream, onState, registry) {
-  const pc = new RTCPeerConnection({ iceServers: await sfIceServers() });
+  const pc = new RTCPeerConnection({ iceServers: await sfIceServers(), iceCandidatePoolSize: 10 });
+  sfWatchIce(pc);
   registry?.set(viewerId, pc);
   stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
@@ -192,7 +207,8 @@ async function sfHostOffer(conn, viewerId, stream, onState, registry) {
 
 // Viewer side: answer a host's offer; onTrack(stream) when video arrives.
 async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
-  const pc = new RTCPeerConnection({ iceServers: await sfIceServers() });
+  const pc = new RTCPeerConnection({ iceServers: await sfIceServers(), iceCandidatePoolSize: 10 });
+  sfWatchIce(pc);
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: hostId, data: { candidate: e.candidate } });
   };

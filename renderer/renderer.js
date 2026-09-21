@@ -290,7 +290,17 @@ function startPeerStats(pc) {
 /* ---------- WebRTC ---------- */
 
 function newPeerConnection(iceServers) {
-  const pc = new RTCPeerConnection({ iceServers });
+  const pc = new RTCPeerConnection({ iceServers, iceCandidatePoolSize: 10 });
+  let discTimer = null;
+  pc.oniceconnectionstatechange = () => {
+    if (pc.iceConnectionState === 'failed') {
+      try { pc.restartIce(); } catch {}
+    } else if (pc.iceConnectionState === 'disconnected') {
+      discTimer = setTimeout(() => {
+        if (pc.iceConnectionState === 'disconnected') { try { pc.restartIce(); } catch {} }
+      }, 4000);
+    } else if (discTimer) { clearTimeout(discTimer); discTimer = null; }
+  };
   pc.onconnectionstatechange = () => {
     if (isHost) {
       setStatus('share-status', `Viewers connected: ${connectedViewerCount()}`);
