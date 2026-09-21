@@ -170,9 +170,10 @@ body::before {
   position: absolute;
   left: 55%;
   right: 4%;
-  top: 60%;
+  top: 58%;
   z-index: 6;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 340px;
   text-align: center;
   font-size: clamp(14px, 1.5vw, 20px);
   line-height: 1.5;
