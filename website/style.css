@@ -180,6 +180,21 @@ body::before {
   color: #333;
 }
 
+.hero-foot {
+  position: absolute;
+  right: 5%;
+  bottom: 6%;
+  z-index: 6;
+  margin: 0;
+  font-size: 15px;
+  color: #666;
+}
+.hero-foot a {
+  color: #666;
+  text-decoration: none;
+}
+.hero-foot a:hover { color: #111; }
+
 /* bottom-left CTA block */
 .hero-cta {
   position: absolute;
