@@ -1,0 +1,61 @@
+name: Build installers
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to upload release assets
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest      # Apple Silicon runner
+            builder: --mac dmg --arm64
+            artifact: ScreenFlow-mac-arm64.dmg
+            pattern: dist/*.dmg
+          - os: macos-13          # Intel runner
+            builder: --mac dmg --x64
+            artifact: ScreenFlow-mac-x64.dmg
+            pattern: dist/*.dmg
+          - os: windows-latest
+            builder: --win nsis --x64
+            artifact: ScreenFlow-windows.exe
+            pattern: dist/*.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build installer
+        run: npx electron-builder ${{ matrix.builder }}
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # unsigned; add certs for signing
+
+      - name: Rename to stable filename
+        shell: bash
+        run: cp ${{ matrix.pattern }} "${{ matrix.artifact }}"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+      - name: Publish to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --generate-notes || true
+          gh release upload "$GITHUB_REF_NAME" "${{ matrix.artifact }}" --clobber
