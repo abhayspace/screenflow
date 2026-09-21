@@ -5,12 +5,18 @@
 
 const SF_SIGNAL = 'wss://screenflow.nextforms.in/ws';
 const SF_ICE = [{ urls: 'stun:stun.l.google.com:19302' }];
-// Optional TURN fallback for restrictive NATs — provision coturn/CF Calls and add:
-// { urls: 'turn:turn.example.com:3478', username: 'user', credential: 'pass' }
-const SF_TURN = [];
 
-function sfIceServers() {
-  return SF_TURN.length ? [...SF_ICE, ...SF_TURN] : SF_ICE;
+// TURN fallback for restrictive NATs — time-limited creds from our API.
+let _turnPromise = null;
+async function sfIceServers() {
+  if (!_turnPromise) {
+    _turnPromise = fetch('/api/turn', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => (d ? { urls: d.urls, username: d.username, credential: d.credential } : null))
+      .catch(() => null);
+  }
+  const turn = await _turnPromise;
+  return turn ? [...SF_ICE, turn] : SF_ICE;
 }
 
 function sfConnect(code, role, extra = {}) {
@@ -168,7 +174,7 @@ function sfAdaptive(pc, onTier) {
 // registry (optional Map) registers the pc BEFORE any await, so early
 // answers/candidates from the viewer are never dropped.
 async function sfHostOffer(conn, viewerId, stream, onState, registry) {
-  const pc = new RTCPeerConnection({ iceServers: sfIceServers() });
+  const pc = new RTCPeerConnection({ iceServers: await sfIceServers() });
   registry?.set(viewerId, pc);
   stream.getTracks().forEach((t) => pc.addTrack(t, stream));
 
@@ -186,7 +192,7 @@ async function sfHostOffer(conn, viewerId, stream, onState, registry) {
 
 // Viewer side: answer a host's offer; onTrack(stream) when video arrives.
 async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
-  const pc = new RTCPeerConnection({ iceServers: sfIceServers() });
+  const pc = new RTCPeerConnection({ iceServers: await sfIceServers() });
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: hostId, data: { candidate: e.candidate } });
   };

@@ -247,6 +247,21 @@ async function authHandler(req, res) {
       return sendJson(res, 200, { ok: true });
     }
 
+    /* ----- TURN credentials (time-limited, HMAC-signed) ----- */
+    if (req.url === '/api/turn') {
+      const secret = process.env.TURN_SECRET;
+      if (!secret) return err('TURN not configured', 503);
+      const ttl = 86400; // 24h
+      const username = `${Math.floor(Date.now() / 1000) + ttl}:${crypto.randomBytes(6).toString('hex')}`;
+      const credential = crypto.createHmac('sha1', secret).update(username).digest('base64');
+      const host = process.env.TURN_HOST || '169.58.135.119';
+      return sendJson(res, 200, {
+        username,
+        credential,
+        urls: [`turn:${host}:3478`, `turn:${host}:3478?transport=tcp`, `turns:${host}:5349`],
+      });
+    }
+
     /* ----- session check (who am I / verify another peer's token) ----- */
     if (req.url === '/api/me') {
       const user = sessions.get(String(body.token || ''));

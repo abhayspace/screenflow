@@ -36,7 +36,17 @@ const navStack = [];
 
 const STUN = { urls: ['stun:stun.l.google.com:19302'] };
 const LAN_ICE = [];               // pure LAN needs no STUN/TURN
-const NET_ICE = [STUN];           // internet mode
+const NET_ICE = [STUN];           // internet mode (+ TURN from /api/turn when available)
+let _turnPromise = null;
+async function netIceServers() {
+  if (!_turnPromise) {
+    _turnPromise = api('/api/turn', {})
+      .then((d) => ({ urls: d.urls, username: d.username, credential: d.credential }))
+      .catch(() => null);
+  }
+  const turn = await _turnPromise;
+  return turn ? [...NET_ICE, turn] : NET_ICE;
+}
 
 const conns = new Set();          // active signaling connections
 const peers = new Map();          // peerId -> { pc, conn }
@@ -522,7 +532,7 @@ async function onShareConnect() {
       return;
     }
     setStatus('share-finding', 'Connecting over the internet…');
-    const ok = await startShare({ url: DEFAULT_SIGNAL_SERVER, room: code, iceServers: NET_ICE });
+    const ok = await startShare({ url: DEFAULT_SIGNAL_SERVER, room: code, iceServers: await netIceServers() });
     setStatus('share-finding', '');
     if (!ok && !errEl.textContent) errEl.textContent = 'Could not reach the internet server.';
   } finally {
@@ -585,7 +595,8 @@ async function startViewer(mode) {
     return;
   }
   try {
-    await addConn(DEFAULT_SIGNAL_SERVER, code, 'viewer', NET_ICE, viewerHandlers(NET_ICE), { restricted: viewerRestricted() });
+    const netIce = await netIceServers();
+    await addConn(DEFAULT_SIGNAL_SERVER, code, 'viewer', netIce, viewerHandlers(netIce), { restricted: viewerRestricted() });
     netReady = true;
     setStatus('wait-status', 'Internet: ready — sharer picks “Over the internet” and enters this code');
   } catch (err) {
