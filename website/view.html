@@ -78,6 +78,9 @@
         if (document.fullscreenElement) document.exitFullscreen();
         else el.requestFullscreen?.();
       };
+      document.addEventListener('fullscreenchange', () => {
+        $('btn-fullscreen').textContent = document.fullscreenElement ? 'Minimize' : 'Fullscreen';
+      });
 
       conn.onPeerLeft = () => {
         pc?.close();

@@ -168,16 +168,33 @@ async function hostOfferTo(viewerId, conn, iceServers) {
   peers.set(viewerId, { pc, conn });
   localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
 
+  // Prefer VP9 — much better detail-per-bit for screen content than VP8.
+  try {
+    const tx = pc.getTransceivers().find((t) => t.sender.track?.kind === 'video');
+    if (tx?.setCodecPreferences) {
+      const rank = (c) => {
+        const i = ['VP9', 'VP8', 'H264', 'AV1'].indexOf(c.mimeType.split('/')[1].toUpperCase());
+        return i < 0 ? 99 : i;
+      };
+      const codecs = RTCRtpSender.getCapabilities('video').codecs;
+      tx.setCodecPreferences([...codecs].sort((a, b) => rank(a) - rank(b)));
+    }
+  } catch { /* codec prefs unsupported */ }
+
   // HD quality for screen content: sharp text, resolution over framerate.
   for (const s of pc.getSenders()) {
     if (s.track?.kind !== 'video') continue;
     try { s.track.contentHint = 'detail'; } catch {}
     try {
       const p = s.getParameters();
-      p.encodings = [{ maxBitrate: 12_000_000, scaleResolutionDownBy: 1 }];
-      p.degradationPreference = 'maintain-resolution';
-      s.setParameters(p);
+      p.encodings = [{ maxBitrate: 15_000_000, scaleResolutionDownBy: 1 }];
+      await s.setParameters(p);
     } catch { /* older Chromium */ }
+    try {
+      const p = s.getParameters();
+      p.degradationPreference = 'maintain-resolution';
+      await s.setParameters(p);
+    } catch { /* nonstandard field */ }
   }
 
   pc.onicecandidate = (e) => {
