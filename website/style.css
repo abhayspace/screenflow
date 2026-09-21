@@ -258,24 +258,24 @@ body::before {
   right: 40px;
   bottom: 60px;
   z-index: 120;
-  width: min(400px, 92vw);
+  width: min(430px, 92vw);
   background: #fff;
   border-radius: 22px;
-  padding: 20px 24px 16px;
+  padding: 24px 26px 20px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
 }
 .dev-head { display: flex; align-items: flex-start; justify-content: space-between; }
-.dev-head h3 { margin: 0; font-size: 19px; }
-.dev-sub { color: #777; font-size: 13px; line-height: 1.55; margin: 8px 0 16px; }
-.dev-body { display: flex; gap: 14px; }
+.dev-head h3 { margin: 0; font-size: 20px; }
+.dev-sub { color: #777; font-size: 13.5px; line-height: 1.6; margin: 10px 0 18px; }
+.dev-body { display: flex; gap: 18px; align-items: flex-start; }
 .dev-msg { flex: 1; position: relative; }
 .dev-msg textarea {
   width: 100%;
-  min-height: 112px;
+  min-height: 120px;
   border: none;
   background: #f2f2f4;
   border-radius: 14px;
-  padding: 14px;
+  padding: 14px 14px 54px;   /* room for the send button */
   font-family: inherit;
   font-size: 13px;
   resize: none;
@@ -283,10 +283,10 @@ body::before {
 }
 .dev-send {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
-  width: 40px;
-  height: 40px;
+  right: 12px;
+  bottom: 12px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   border: none;
   cursor: pointer;
@@ -296,14 +296,14 @@ body::before {
   justify-content: center;
 }
 .dev-send:hover { background: #e0440f; }
-.dev-side { width: 108px; text-align: center; }
+.dev-side { width: 110px; text-align: center; padding-top: 4px; }
 .dev-photo {
-  width: 96px;
-  height: 96px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
   object-fit: cover;
 }
-.dev-mail { display: block; font-size: 10.5px; color: #555; margin-top: 8px; word-break: break-all; }
+.dev-mail { display: block; font-size: 11px; line-height: 1.45; color: #555; margin-top: 10px; }
 
 /* inner pages */
 .page-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 32px 20px; }
