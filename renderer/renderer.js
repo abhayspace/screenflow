@@ -201,17 +201,8 @@ function addScreenTrack(pc, track, stream) {
   } catch {
     tc = pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] });
   }
-  try {
-    const caps = RTCPeerConnection.getCapabilities('video').codecs;
-    const pref = [];
-    // VP9 SVC (Meet-style temporal layers) first; AV1 demoted — its software
-    // encode is too CPU-heavy and causes send-side lag.
-    for (const name of ['VP9', 'VP8', 'H264', 'AV1X']) {
-      const c = caps.find((c) => c.mimeType === `video/${name}`);
-      if (c) pref.push(c);
-    }
-    if (pref.length) tc.setCodecPreferences(pref);
-  } catch { /* older Chromium */ }
+  // No codec preference — the browser's negotiated default (VP8) proved best;
+  // forcing VP9/AV1 regressed quality and lag.
   return tc.sender;
 }
 
