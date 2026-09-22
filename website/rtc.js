@@ -226,7 +226,14 @@ async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
   pc.onconnectionstatechange = () => onState?.(hostId, pc.connectionState);
   pc.ontrack = (e) => {
     try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {} // realtime, no buffer
-    onTrack?.(e.streams?.[0] || (e.track ? new MediaStream([e.track]) : null));
+    // Accumulate audio+video into one stream — e.streams may be empty or
+    // tracks may arrive split across separate streams.
+    if (!pc._remoteStream) pc._remoteStream = new MediaStream();
+    const tracks = e.streams?.length ? e.streams.flatMap((s) => s.getTracks()) : [e.track];
+    for (const t of tracks) {
+      if (t && !pc._remoteStream.getTracks().includes(t)) pc._remoteStream.addTrack(t);
+    }
+    onTrack?.(pc._remoteStream);
   };
   await pc.setRemoteDescription(sdp);
   const answer = await pc.createAnswer();

@@ -184,7 +184,13 @@ async function captureScreen(sourceId) {
       height: { ideal: 1440 },
       frameRate: { ideal: 30, max: 30 },
     },
-    audio: false,
+    // Loopback/system audio where the platform allows it (Electron handler
+    // returns 'loopback'); absent on platforms that can't capture it.
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+    },
   });
 }
 
@@ -367,10 +373,22 @@ async function handleSignal(from, data, conn, iceServers) {
       };
       pc.ontrack = (e) => {
         try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {}
-        $('remote-video').srcObject = e.streams?.[0] || (e.track ? new MediaStream([e.track]) : null);
-        $('remote-video').classList.remove('hidden');
+        // Accumulate audio+video into one stream — e.streams may be empty or
+        // tracks may arrive split across separate streams.
+        if (!pc._remoteStream) pc._remoteStream = new MediaStream();
+        const tracks = e.streams?.length ? e.streams.flatMap((s) => s.getTracks()) : [e.track];
+        for (const t of tracks) {
+          if (t && !pc._remoteStream.getTracks().includes(t)) pc._remoteStream.addTrack(t);
+        }
+        const v = $('remote-video');
+        v.srcObject = pc._remoteStream;
+        v.muted = false; // remote audio — sharer's sound plays on the viewer
+        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+        v.classList.remove('hidden');
         $('btn-fullscreen').classList.remove('hidden');
         setStatus('wait-status', 'Receiving stream…');
+        if (pc._gotTrack) return; // ontrack fires per track (audio+video)
+        pc._gotTrack = true;
         const stop = statsLoop(pc, (m) => {
           if (m.rkbps == null || !$('wait-stats')) return;
           $('wait-stats').textContent =

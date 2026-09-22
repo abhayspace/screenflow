@@ -85,7 +85,9 @@ app.whenReady().then(() => {
       .getSources({ types: ['screen'] })
       .then((sources) => {
         const src = sources.find((s) => s.id === pendingSourceId) || sources[0];
-        if (src) callback({ video: src, audio: false });
+        // 'loopback' captures system audio (Windows + macOS via ScreenCaptureKit);
+        // platforms without loopback support simply return no audio track.
+        if (src) callback({ video: src, audio: 'loopback' });
         else callback();
       })
       .catch(() => callback());

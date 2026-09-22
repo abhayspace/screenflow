@@ -51,7 +51,7 @@
     &nbsp;© 2026 nextforms
   </p>
 
-  <script src="rtc.js?v=12"></script>
+  <script src="rtc.js?v=13"></script>
   <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -104,10 +104,18 @@
               if (!s) return;
               const v = $('remote');
               v.srcObject = s;
-              v.muted = true; // autoplay policy — stream has no audio anyway
-              v.play().catch(() => {});
+              v.muted = false; // remote audio — sharer's sound plays here
+              v.play().catch(() => {
+                // Unmuted autoplay blocked: start muted, unmute on first tap.
+                v.muted = true;
+                v.play().catch(() => {});
+                $('v-status').textContent = 'Tap the screen to enable audio';
+                document.addEventListener('click', () => { v.muted = false; }, { once: true });
+              });
               $('video-wrap').classList.remove('hidden');
               $('v-status').textContent = 'Receiving stream…';
+              if (pc._gotTrack) return; // ontrack fires per track (audio+video)
+              pc._gotTrack = true;
               const stopStats = sfStatsLoop(pc, (m) => {
                 if (!pc || pc.signalingState === 'closed') return stopStats();
                 if (m.rkbps != null) {

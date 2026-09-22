@@ -55,7 +55,7 @@
     &nbsp;© 2026 nextforms
   </p>
 
-  <script src="rtc.js?v=12"></script>
+  <script src="rtc.js?v=13"></script>
   <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -83,7 +83,13 @@
             height: { ideal: 1440 },
             frameRate: { ideal: 30, max: 30 },
           },
-          audio: false,
+          // Tab audio (all Chromium) or system audio (Win/Linux whole-screen).
+          // False voice-processing flags keep the original audio quality.
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
         });
       } catch {
         $('share-status').textContent = 'Screen share was cancelled or blocked — try again.';
