@@ -116,6 +116,7 @@ body::before {
 }
 #video-wrap { margin-top: 16px; }
 #video-wrap .btn { margin-top: 12px; }
+#video-wrap .remote-video { transition: transform 0.15s ease; }
 #video-wrap:fullscreen {
   width: 100vw;
   height: 100vh;
@@ -124,6 +125,7 @@ body::before {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 #video-wrap:fullscreen .stats-line { display: none; }
 #video-wrap:fullscreen .remote-video {
@@ -133,18 +135,23 @@ body::before {
   object-fit: contain;
   border-radius: 0;
 }
-#video-wrap:fullscreen .cta-btn {
+#fs-controls { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+#video-wrap:fullscreen #fs-controls {
   position: absolute;
   bottom: 24px;
   right: 24px;
-  background: rgba(230, 230, 230, 0.92);
-  color: #333;
-  box-shadow: none;
+  margin: 0;
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.25s;
 }
-#video-wrap:fullscreen .cta-btn.ui-show { opacity: 1; pointer-events: auto; }
+#video-wrap:fullscreen #fs-controls.ui-show { opacity: 1; pointer-events: auto; }
+#video-wrap:fullscreen #fs-controls .cta-btn {
+  background: rgba(230, 230, 230, 0.92);
+  color: #333;
+  box-shadow: none;
+}
+.cta-btn.ghost-dark { padding: 10px 16px; }
 
 .btn {
   padding: 10px 22px;

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>View on Web — ScreenFlow</title>
   <link rel="icon" href="assets/favicon.png?v=30" />
-  <link rel="stylesheet" href="style.css?v=45" />
+  <link rel="stylesheet" href="style.css?v=46" />
 </head>
 <body>
   <header class="app-header">
@@ -36,7 +36,11 @@
 
       <div id="video-wrap" class="hidden">
         <video id="remote" autoplay playsinline class="remote-video"></video>
-        <button class="cta-btn orange" id="btn-fullscreen">Fullscreen</button>
+        <div id="fs-controls">
+          <button class="cta-btn ghost-dark" id="btn-zoom-out" title="Zoom out">−</button>
+          <button class="cta-btn ghost-dark" id="btn-zoom-in" title="Zoom in">+</button>
+          <button class="cta-btn orange" id="btn-fullscreen">Fullscreen</button>
+        </div>
         <p id="view-stats" class="stats-line"></p>
       </div>
     </div>
@@ -131,12 +135,21 @@
 
       const wrap = document.getElementById('video-wrap');
       const fsBtn = $('btn-fullscreen');
+      const fsControls = $('fs-controls');
       let hideTimer = null;
+      let zoom = 1;
+
+      function setZoom(z) {
+        zoom = Math.min(3, Math.max(1, z));
+        $('remote').style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+      }
+      $('btn-zoom-in').onclick = () => { setZoom(zoom + 0.25); showUi(); };
+      $('btn-zoom-out').onclick = () => { setZoom(zoom - 0.25); showUi(); };
 
       function showUi() {
-        fsBtn.classList.add('ui-show');
+        fsControls.classList.add('ui-show');
         clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => fsBtn.classList.remove('ui-show'), 2500);
+        hideTimer = setTimeout(() => fsControls.classList.remove('ui-show'), 2500);
       }
       ['mousemove', 'click', 'touchstart'].forEach((ev) =>
         wrap.addEventListener(ev, showUi)
@@ -161,7 +174,7 @@
         logVideoDims(fs ? 'enter' : 'exit'); // stream res must be unchanged
         fsBtn.textContent = fs ? 'Minimize' : 'Fullscreen';
         if (fs) showUi();
-        else { clearTimeout(hideTimer); fsBtn.classList.remove('ui-show'); }
+        else { clearTimeout(hideTimer); fsControls.classList.remove('ui-show'); setZoom(1); }
       });
 
       conn.onPeerLeft = (id) => {
