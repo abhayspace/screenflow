@@ -47,7 +47,7 @@
     &nbsp;© 2026 nextforms
   </p>
 
-  <script src="rtc.js?v=11"></script>
+  <script src="rtc.js?v=12"></script>
   <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
@@ -97,7 +97,11 @@
           if (!pc) {
             pc = await sfViewerAnswer(conn, from, data.sdp, {
             onTrack: (s) => {
-              $('remote').srcObject = s;
+              if (!s) return;
+              const v = $('remote');
+              v.srcObject = s;
+              v.muted = true; // autoplay policy — stream has no audio anyway
+              v.play().catch(() => {});
               $('video-wrap').classList.remove('hidden');
               $('v-status').textContent = 'Receiving stream…';
               const stopStats = sfStatsLoop(pc, (m) => {
@@ -160,8 +164,9 @@
         else { clearTimeout(hideTimer); fsBtn.classList.remove('ui-show'); }
       });
 
-      conn.onPeerLeft = () => {
-        pc?.close();
+      conn.onPeerLeft = (id) => {
+        if (!pc || id !== pc._hostId) return; // only react to OUR host leaving
+        pc.close();
         pc = null;
         $('remote').srcObject = null;
         $('video-wrap').classList.add('hidden');

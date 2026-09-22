@@ -218,6 +218,7 @@ async function sfHostOffer(conn, viewerId, stream, onState, registry) {
 // Viewer side: answer a host's offer; onTrack(stream) when video arrives.
 async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
   const pc = new RTCPeerConnection({ iceServers: await sfIceServers(), iceCandidatePoolSize: 10 });
+  pc._hostId = hostId;
   sfWatchIce(pc);
   pc.onicecandidate = (e) => {
     if (e.candidate) conn.send({ type: 'signal', to: hostId, data: { candidate: e.candidate } });
