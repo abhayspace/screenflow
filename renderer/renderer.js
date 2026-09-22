@@ -180,8 +180,8 @@ async function captureScreen(sourceId) {
   }
   return navigator.mediaDevices.getDisplayMedia({
     video: {
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
+      width: { ideal: 2560 },
+      height: { ideal: 1440 },
       frameRate: { ideal: 30, max: 30 },
     },
     audio: false,
@@ -210,7 +210,7 @@ function addScreenTrack(pc, track, stream) {
 // Adapt down under congestion/CPU load, recover when clean. Sharp text first.
 
 const SF_TIERS = [
-  { maxBitrate: 8_000_000, maxFramerate: 30 },
+  { maxBitrate: 10_000_000, maxFramerate: 30 },
   { maxBitrate: 4_000_000, maxFramerate: 24 },
   { maxBitrate: 2_500_000, maxFramerate: 15 },
   { maxBitrate: 1_200_000, maxFramerate: 10 },

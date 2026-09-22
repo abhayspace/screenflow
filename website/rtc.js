@@ -60,7 +60,7 @@ function sfConnect(code, role, extra = {}) {
 /* ---------- Quality tiers (adapt down under load, recover up when clean) ---------- */
 
 const SF_TIERS = [
-  { maxBitrate: 8_000_000, maxFramerate: 30 }, // good: 1080p, headroom for motion/video
+  { maxBitrate: 10_000_000, maxFramerate: 30 }, // good: up to 1440p, headroom for motion
   { maxBitrate: 4_000_000, maxFramerate: 24 }, // moderate
   { maxBitrate: 2_500_000, maxFramerate: 15 }, // poor
   { maxBitrate: 1_200_000, maxFramerate: 10 }, // very poor
