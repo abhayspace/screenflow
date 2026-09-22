@@ -379,7 +379,6 @@ async function handleSignal(from, data, conn, iceServers) {
       };
       pc.ontrack = (e) => {
         try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {}
-        try { if (e.receiver) e.receiver.jitterBufferTarget = 0; } catch {}
         $('remote-video').srcObject = e.streams[0];
         $('remote-video').classList.remove('hidden');
         $('btn-fullscreen').classList.remove('hidden');

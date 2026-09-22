@@ -238,7 +238,6 @@ async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
   pc.onconnectionstatechange = () => onState?.(hostId, pc.connectionState);
   pc.ontrack = (e) => {
     try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {} // realtime, no buffer
-    try { if (e.receiver) e.receiver.jitterBufferTarget = 0; } catch {} // kill jitter buffer lag
     onTrack?.(e.streams[0]);
   };
   await pc.setRemoteDescription(sdp);
