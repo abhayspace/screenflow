@@ -188,22 +188,10 @@ async function captureScreen(sourceId) {
   });
 }
 
-// Screen-tuned send: temporal scalability (L1T3) sheds layers not resolution
-// under congestion; codec preference AV1 > VP9 > default per viewer.
+// Screen-tuned send: sendonly transceiver, no codec forcing — the browser's
+// negotiated default (VP8) proved best; VP9/AV1 and scalabilityMode regressed.
 function addScreenTrack(pc, track, stream) {
-  let tc;
-  try {
-    tc = pc.addTransceiver(track, {
-      direction: 'sendonly',
-      streams: [stream],
-      sendEncodings: [{ scalabilityMode: 'L1T3' }],
-    });
-  } catch {
-    tc = pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] });
-  }
-  // No codec preference — the browser's negotiated default (VP8) proved best;
-  // forcing VP9/AV1 regressed quality and lag.
-  return tc.sender;
+  return pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] }).sender;
 }
 
 /* ---------- Quality tiers + diagnostics ---------- */
@@ -379,7 +367,7 @@ async function handleSignal(from, data, conn, iceServers) {
       };
       pc.ontrack = (e) => {
         try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {}
-        $('remote-video').srcObject = e.streams[0];
+        $('remote-video').srcObject = e.streams?.[0] || (e.track ? new MediaStream([e.track]) : null);
         $('remote-video').classList.remove('hidden');
         $('btn-fullscreen').classList.remove('hidden');
         setStatus('wait-status', 'Receiving stream…');

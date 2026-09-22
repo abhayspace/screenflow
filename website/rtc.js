@@ -191,23 +191,10 @@ function sfWatchIce(pc) {
   };
 }
 
-// Screen-tuned send setup: temporal scalability (L1T3) so congestion sheds
-// layers instead of resolution, and modern codec preference (AV1 screen
-// content coding > VP9 > default) negotiated per-viewer.
+// Screen-tuned send: sendonly transceiver, no codec forcing — the browser's
+// negotiated default (VP8) proved best; VP9/AV1 and scalabilityMode regressed.
 function sfAddScreenTrack(pc, track, stream) {
-  let tc;
-  try {
-    tc = pc.addTransceiver(track, {
-      direction: 'sendonly',
-      streams: [stream],
-      sendEncodings: [{ scalabilityMode: 'L1T3' }],
-    });
-  } catch {
-    tc = pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] });
-  }
-  // No codec preference — the browser's negotiated default (VP8) proved best;
-  // forcing VP9/AV1 regressed quality and lag.
-  return tc.sender;
+  return pc.addTransceiver(track, { direction: 'sendonly', streams: [stream] }).sender;
 }
 
 async function sfHostOffer(conn, viewerId, stream, onState, registry) {
@@ -238,7 +225,7 @@ async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
   pc.onconnectionstatechange = () => onState?.(hostId, pc.connectionState);
   pc.ontrack = (e) => {
     try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {} // realtime, no buffer
-    onTrack?.(e.streams[0]);
+    onTrack?.(e.streams?.[0] || (e.track ? new MediaStream([e.track]) : null));
   };
   await pc.setRemoteDescription(sdp);
   const answer = await pc.createAnswer();
