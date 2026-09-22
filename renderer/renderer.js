@@ -204,7 +204,9 @@ function addScreenTrack(pc, track, stream) {
   try {
     const caps = RTCPeerConnection.getCapabilities('video').codecs;
     const pref = [];
-    for (const name of ['AV1X', 'VP9', 'VP8', 'H264']) {
+    // VP9 SVC (Meet-style temporal layers) first; AV1 demoted — its software
+    // encode is too CPU-heavy and causes send-side lag.
+    for (const name of ['VP9', 'VP8', 'H264', 'AV1X']) {
       const c = caps.find((c) => c.mimeType === `video/${name}`);
       if (c) pref.push(c);
     }
@@ -386,6 +388,7 @@ async function handleSignal(from, data, conn, iceServers) {
       };
       pc.ontrack = (e) => {
         try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {}
+        try { if (e.receiver) e.receiver.jitterBufferTarget = 0; } catch {}
         $('remote-video').srcObject = e.streams[0];
         $('remote-video').classList.remove('hidden');
         $('btn-fullscreen').classList.remove('hidden');

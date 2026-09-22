@@ -208,7 +208,9 @@ function sfAddScreenTrack(pc, track, stream) {
   try {
     const caps = RTCPeerConnection.getCapabilities('video').codecs;
     const pref = [];
-    for (const name of ['AV1X', 'VP9', 'VP8', 'H264']) {
+    // VP9 SVC = Meet-style temporal layers at sane CPU cost.
+    // AV1 demoted — software AV1 encode is too heavy and causes send-side lag.
+    for (const name of ['VP9', 'VP8', 'H264', 'AV1X']) {
       const c = caps.find((c) => c.mimeType === `video/${name}`);
       if (c) pref.push(c);
     }
@@ -245,6 +247,7 @@ async function sfViewerAnswer(conn, hostId, sdp, { onTrack, onState }) {
   pc.onconnectionstatechange = () => onState?.(hostId, pc.connectionState);
   pc.ontrack = (e) => {
     try { if (e.receiver) e.receiver.playoutDelayHint = 0; } catch {} // realtime, no buffer
+    try { if (e.receiver) e.receiver.jitterBufferTarget = 0; } catch {} // kill jitter buffer lag
     onTrack?.(e.streams[0]);
   };
   await pc.setRemoteDescription(sdp);
