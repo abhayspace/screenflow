@@ -137,14 +137,48 @@
       const fsBtn = $('btn-fullscreen');
       const fsControls = $('fs-controls');
       let hideTimer = null;
-      let zoom = 1;
+      let zoom = 1, panX = 0, panY = 0, dragging = false, dragX = 0, dragY = 0;
 
+      function applyTransform() {
+        $('remote').style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+      }
+      function clampPan() {
+        const v = $('remote');
+        panX = Math.min((v.clientWidth * (zoom - 1)) / 2, Math.max(-(v.clientWidth * (zoom - 1)) / 2, panX));
+        panY = Math.min((v.clientHeight * (zoom - 1)) / 2, Math.max(-(v.clientHeight * (zoom - 1)) / 2, panY));
+      }
       function setZoom(z) {
         zoom = Math.min(3, Math.max(1, z));
-        $('remote').style.transform = zoom === 1 ? '' : `scale(${zoom})`;
+        if (zoom === 1) { panX = panY = 0; }
+        clampPan();
+        applyTransform();
+        wrap.style.cursor = zoom > 1 ? 'grab' : '';
       }
       $('btn-zoom-in').onclick = () => { setZoom(zoom + 0.25); showUi(); };
       $('btn-zoom-out').onclick = () => { setZoom(zoom - 0.25); showUi(); };
+
+      // Drag to pan when zoomed in
+      wrap.addEventListener('pointerdown', (e) => {
+        if (zoom <= 1 || e.target.closest('#fs-controls')) return;
+        dragging = true;
+        dragX = e.clientX - panX;
+        dragY = e.clientY - panY;
+        wrap.setPointerCapture(e.pointerId);
+        wrap.style.cursor = 'grabbing';
+      });
+      wrap.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        panX = e.clientX - dragX;
+        panY = e.clientY - dragY;
+        clampPan();
+        applyTransform();
+      });
+      ['pointerup', 'pointercancel'].forEach((ev) =>
+        wrap.addEventListener(ev, () => {
+          dragging = false;
+          wrap.style.cursor = zoom > 1 ? 'grab' : '';
+        })
+      );
 
       function showUi() {
         fsControls.classList.add('ui-show');
