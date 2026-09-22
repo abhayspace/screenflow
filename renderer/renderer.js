@@ -145,8 +145,12 @@ function addConn(url, room, role, iceServers, handlers, joinExtra = {}) {
 
       if (msg.type === 'joined') {
         clearTimeout(timeout);
+        conn._joined = true;
         conns.add(conn);
         resolve({ ...msg, conn });
+      } else if (msg.type === 'busy') {
+        clearTimeout(timeout);
+        reject(new Error(msg.message || 'Someone is already sharing to this code'));
       } else if (msg.type === 'error') {
         handlers.onError?.(msg.message);
       } else {
@@ -161,7 +165,7 @@ function addConn(url, room, role, iceServers, handlers, joinExtra = {}) {
 
     socket.onclose = () => {
       conns.delete(conn);
-      handlers.onClose?.();
+      if (conn._joined) handlers.onClose?.();
     };
   });
 }

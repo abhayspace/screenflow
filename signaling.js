@@ -61,6 +61,13 @@ function wireSignaling(wss) {
           members = new Map();
           rooms.set(room, members);
         }
+        // One host per room — a second sharer is rejected until the first leaves.
+        if (msg.role === 'host' && [...members.values()].some((m) => m._role === 'host')) {
+          console.log(`[signal] busy room=${room} (host already present)`);
+          send(ws, { type: 'busy', message: 'Someone is already sharing to this code. Wait until they stop.' });
+          try { ws.close(); } catch {}
+          return;
+        }
         const peers = [...members.entries()].map(([id, m]) => ({ id, role: m._role, restricted: !!m._restricted }));
         ws._room = room;
         ws._role = msg.role === 'host' ? 'host' : 'viewer';

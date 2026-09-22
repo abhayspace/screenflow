@@ -42,14 +42,18 @@ function sfConnect(code, role, extra = {}) {
         conn.id = m.id;
         conn.peers = m.peers || [];
         clearTimeout(timer);
+        conn._joined = true;
         resolve(conn);
+      } else if (m.type === 'busy') {
+        clearTimeout(timer);
+        reject(new Error(m.message || 'Someone is already sharing to this code'));
       } else if (m.type === 'peer-joined') conn.onPeerJoined?.(m);
       else if (m.type === 'peer-left') conn.onPeerLeft?.(m.id);
       else if (m.type === 'signal') conn.onSignal?.(m.from, m.data);
       else if (m.type === 'error') conn.onError?.(m.message);
     };
     ws.onerror = () => { clearTimeout(timer); reject(new Error('Cannot reach the ScreenFlow server')); };
-    ws.onclose = () => conn.onError?.('Disconnected from server');
+    ws.onclose = () => { if (conn._joined) conn.onError?.('Disconnected from server'); };
   });
 }
 
