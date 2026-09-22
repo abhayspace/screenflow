@@ -66,6 +66,7 @@ function wireSignaling(wss) {
         ws._role = msg.role === 'host' ? 'host' : 'viewer';
         ws._restricted = !!msg.restricted;
         members.set(ws._id, ws);
+        console.log(`[signal] join room=${room} role=${ws._role} restricted=${ws._restricted} peers=${members.size}`);
         send(ws, { type: 'joined', id: ws._id, room, role: ws._role, peers });
         broadcast(room, { type: 'peer-joined', id: ws._id, role: ws._role, restricted: ws._restricted }, ws._id);
         return;
@@ -86,7 +87,10 @@ function wireSignaling(wss) {
       send(ws, { type: 'error', message: 'Unknown message type' });
     });
 
-    ws.on('close', () => leaveRoom(ws));
+    ws.on('close', () => {
+      if (ws._room) console.log(`[signal] leave room=${ws._room} role=${ws._role}`);
+      leaveRoom(ws);
+    });
     ws.on('error', () => leaveRoom(ws));
   });
 

@@ -59,7 +59,8 @@
   <script src="auth.js"></script>
   <script>
     const $ = (id) => document.getElementById(id);
-    let stream = null, conn = null;
+    let stream = null, conn = null, turnReady = false;
+    sfIceServers().then((ice) => { turnReady = ice.length > 1; });
     const pcs = new Map();
     const denied = new Set();
 
@@ -152,7 +153,7 @@
         if (m.kbps != null) {
           $('share-stats').textContent =
             `${m.w || '?'}×${m.h || '?'} · ${Math.round(m.fps || 0)}fps · ${(m.kbps / 1000).toFixed(1)}Mbps · ` +
-            `RTT ${Math.round((m.rtt || m.rRtt || 0) * 1000)}ms · loss ${(((m.rFraction) || 0) * 100).toFixed(1)}% · ${m.ice || 'p2p'}` +
+            `RTT ${Math.round((m.rtt || m.rRtt || 0) * 1000)}ms · loss ${(((m.rFraction) || 0) * 100).toFixed(1)}% · ${m.ice || 'p2p'}${turnReady ? '' : ' · no-turn'}` +
             (m.qlr && m.qlr !== 'none' ? ` · limited by ${m.qlr}` : '');
         }
       });
