@@ -42,10 +42,22 @@ jobs:
       - name: Build installer
         shell: bash
         run: |
-          # Sign + notarize only on mac jobs when the cert secrets actually
-          # exist — an empty CSC_LINK breaks electron-builder ("not a file"),
-          # and a macOS Developer ID cert can't sign Windows builds anyway.
-          if [ "${{ matrix.sign }}" != "true" ] || [ -z "$CSC_LINK" ]; then
+          # macOS: sign + notarize when secrets exist. Import the cert into a
+          # dedicated keychain ourselves (-A = any app may use the key, no
+          # partition-list prompt) — electron-builder's own keychain handling
+          # fails set-key-partition-list on newer runners. Windows and empty
+          # secrets fall back to unsigned builds.
+          if [ "${{ matrix.sign }}" = "true" ] && [ -n "$CSC_LINK" ]; then
+            echo "$CSC_LINK" | base64 --decode > signing.p12
+            security create-keychain -p "$CSC_KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$CSC_KEYCHAIN_PASSWORD" build.keychain
+            security set-keychain-settings -t 3600 build.keychain
+            security import signing.p12 -k build.keychain -P "$CSC_KEY_PASSWORD" -A
+            security set-key-partition-list -S apple-tool:,apple: -s -k "$CSC_KEYCHAIN_PASSWORD" build.keychain || true
+            rm signing.p12
+            unset CSC_LINK CSC_KEYCHAIN_PASSWORD CSC_KEY_PASSWORD
+          else
             unset CSC_LINK CSC_KEYCHAIN_PASSWORD CSC_KEY_PASSWORD
             export CSC_IDENTITY_AUTO_DISCOVERY=false
           fi
