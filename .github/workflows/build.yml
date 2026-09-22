@@ -37,10 +37,17 @@ jobs:
       - run: npm ci
 
       - name: Build installer
-        run: npx electron-builder ${{ matrix.builder }} --publish never
+        shell: bash
+        run: |
+          # Sign + notarize only when the cert secrets actually exist —
+          # an empty CSC_LINK breaks electron-builder ("not a file").
+          if [ -z "$CSC_LINK" ]; then
+            unset CSC_LINK CSC_KEYCHAIN_PASSWORD
+            export CSC_IDENTITY_AUTO_DISCOVERY=false
+          fi
+          npx electron-builder ${{ matrix.builder }} --publish never
         env:
-          # Signs + notarizes automatically once the CSC_* / APPLE_* secrets exist.
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' && 'true' || 'false' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'true'
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEYCHAIN_PASSWORD: ${{ secrets.CSC_KEYCHAIN_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
